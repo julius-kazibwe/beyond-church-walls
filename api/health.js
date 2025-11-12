@@ -9,19 +9,13 @@ export default async (req, res) => {
       res.status(200).json({ 
         status: 'ok', 
         message: 'Backend is running',
-        timestamp: new Date().toISOString(),
-        nodeVersion: process.version,
-        env: {
-          hasEmailService: !!process.env.EMAIL_SERVICE,
-          hasAdminEmail: !!process.env.ADMIN_EMAIL
-        }
+        timestamp: new Date().toISOString()
       });
     } else {
       res.status(405).json({ error: 'Method not allowed' });
     }
   } catch (error) {
     console.error('Health check error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Internal server error',
       message: error.message 

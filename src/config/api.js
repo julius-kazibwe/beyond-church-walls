@@ -17,13 +17,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
     ? '/api'  // Same domain in production
     : 'http://localhost:3001/api';  // Local backend for development
 
-// Debug logging (remove in production if needed)
-if (import.meta.env.DEV) {
-  console.log('API Base URL:', API_BASE_URL);
-  console.log('Is Production:', import.meta.env.PROD);
-  console.log('Is Vercel:', isVercelProduction);
-}
-
 export const API_ENDPOINTS = {
   EMAIL_SIGNUP: `${API_BASE_URL}/email-signup`,
   PRE_ORDER: `${API_BASE_URL}/pre-order`,

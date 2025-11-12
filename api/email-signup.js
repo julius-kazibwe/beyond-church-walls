@@ -3,29 +3,21 @@ import { sendEmail } from './utils/email.js';
 
 export default async (req, res) => {
   try {
-
-    console.log('Email signup function called:', req.method, req.url);
-    
     // Handle CORS
     if (handleCors(req, res)) return;
 
     // Only allow POST requests
     if (req.method !== 'POST') {
-      console.log('Method not allowed:', req.method);
       res.status(405).json({ error: 'Method not allowed' });
       return;
     }
 
-    console.log('Request body:', req.body);
     const { email } = req.body;
 
     if (!email || !email.includes('@')) {
       res.status(400).json({ error: 'Valid email is required' });
       return;
     }
-
-    // Log submission (in serverless, we can't reliably save to filesystem)
-    console.log('Email signup:', { email, timestamp: new Date().toISOString() });
 
     // Send confirmation email to user
     const userEmailHtml = `
@@ -80,7 +72,6 @@ export default async (req, res) => {
     res.status(200).json({ success: true, message: 'Email signup successful' });
   } catch (error) {
     console.error('Email signup error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to process signup',
       message: error.message 

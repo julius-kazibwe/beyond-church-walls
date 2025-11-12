@@ -17,12 +17,6 @@ export default async (req, res) => {
       return;
     }
 
-    // Log submission
-    console.log('Book preview access:', { 
-      email, 
-      timestamp: new Date().toISOString() 
-    });
-
     // Send confirmation email to user
     const userEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -71,7 +65,6 @@ export default async (req, res) => {
     res.status(200).json({ success: true, message: 'Access granted' });
   } catch (error) {
     console.error('Book preview access error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to process request',
       message: error.message 

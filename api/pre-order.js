@@ -17,16 +17,6 @@ export default async (req, res) => {
       return;
     }
 
-    // Log submission
-    console.log('Pre-order submission:', { 
-      name, 
-      email, 
-      phone, 
-      interest, 
-      message,
-      timestamp: new Date().toISOString() 
-    });
-
     // Send confirmation email to user
     const userEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -80,7 +70,6 @@ export default async (req, res) => {
     res.status(200).json({ success: true, message: 'Submission received successfully' });
   } catch (error) {
     console.error('Pre-order error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to process submission',
       message: error.message 

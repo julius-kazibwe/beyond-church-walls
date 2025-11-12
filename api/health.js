@@ -1,6 +1,6 @@
-const { handleCors } = require('./utils/cors');
+import { handleCors } from './utils/cors.js';
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
     // Handle CORS
     if (handleCors(req, res)) return;

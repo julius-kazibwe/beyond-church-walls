@@ -1,40 +1,68 @@
-const nodemailer = require('nodemailer');
+import nodemailerModule from 'nodemailer';
+
+let nodemailer;
+try {
+  nodemailer = nodemailerModule;
+} catch (error) {
+  console.error('Failed to load nodemailer:', error);
+  nodemailer = null;
+}
 
 // Email transporter configuration
 const createTransporter = () => {
+  if (!nodemailer) {
+    console.log('Nodemailer not available');
+    return null;
+  }
+
   // Option 1: Gmail (using App Password)
   if (process.env.EMAIL_SERVICE === 'gmail') {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD, // Use App Password, not regular password
-      },
-    });
+    try {
+      return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD, // Use App Password, not regular password
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create Gmail transporter:', error);
+      return null;
+    }
   }
   
   // Option 2: SMTP (works with most email providers)
   if (process.env.EMAIL_SERVICE === 'smtp') {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+    try {
+      return nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create SMTP transporter:', error);
+      return null;
+    }
   }
   
   // Option 3: SendGrid
   if (process.env.EMAIL_SERVICE === 'sendgrid') {
-    return nodemailer.createTransport({
-      service: 'SendGrid',
-      auth: {
-        user: 'apikey',
-        pass: process.env.SENDGRID_API_KEY,
-      },
-    });
+    try {
+      return nodemailer.createTransport({
+        service: 'SendGrid',
+        auth: {
+          user: 'apikey',
+          pass: process.env.SENDGRID_API_KEY,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create SendGrid transporter:', error);
+      return null;
+    }
   }
   
   return null;
@@ -87,5 +115,5 @@ const sendEmail = async (to, subject, html, text) => {
   }
 };
 
-module.exports = { sendEmail, transporter };
+export { sendEmail, transporter };
 

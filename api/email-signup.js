@@ -1,8 +1,9 @@
-const { handleCors } = require('./utils/cors');
-const { sendEmail } = require('./utils/email');
+import { handleCors } from './utils/cors.js';
+import { sendEmail } from './utils/email.js';
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
+
     console.log('Email signup function called:', req.method, req.url);
     
     // Handle CORS

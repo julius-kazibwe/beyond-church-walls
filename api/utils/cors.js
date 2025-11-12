@@ -6,7 +6,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-const handleCors = (req, res) => {
+export const handleCors = (req, res) => {
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.writeHead(200, corsHeaders);
@@ -22,5 +22,5 @@ const handleCors = (req, res) => {
   return false;
 };
 
-module.exports = { handleCors, corsHeaders };
+export { corsHeaders };
 

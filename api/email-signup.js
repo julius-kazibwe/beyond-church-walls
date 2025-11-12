@@ -5,6 +5,7 @@ module.exports = async (req, res) => {
   // Handle CORS
   if (handleCors(req, res)) return;
 
+  // Only allow POST requests
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

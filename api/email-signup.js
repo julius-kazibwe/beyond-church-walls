@@ -2,19 +2,19 @@ const { handleCors } = require('./utils/cors');
 const { sendEmail } = require('./utils/email');
 
 module.exports = async (req, res) => {
-  console.log('Email signup function called:', req.method, req.url);
-  
-  // Handle CORS
-  if (handleCors(req, res)) return;
-
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    console.log('Method not allowed:', req.method);
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-
   try {
+    console.log('Email signup function called:', req.method, req.url);
+    
+    // Handle CORS
+    if (handleCors(req, res)) return;
+
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      console.log('Method not allowed:', req.method);
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
     console.log('Request body:', req.body);
     const { email } = req.body;
 
@@ -43,30 +43,47 @@ module.exports = async (req, res) => {
       </div>
     `;
 
-    await sendEmail(
-      email,
-      'Welcome to Beyond Church Walls',
-      userEmailHtml,
-      `Thank you for signing up! We'll keep you updated about Beyond Church Walls.`
-    );
+    // Try to send email, but don't fail if email service isn't configured
+    try {
+      await sendEmail(
+        email,
+        'Welcome to Beyond Church Walls',
+        userEmailHtml,
+        `Thank you for signing up! We'll keep you updated about Beyond Church Walls.`
+      );
+    } catch (emailError) {
+      console.error('Email send error (non-fatal):', emailError);
+      // Continue even if email fails
+    }
 
-    // Notify admin
-    const adminEmailHtml = `
-      <h3>New Email Signup</h3>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-    `;
+    // Notify admin (only if ADMIN_EMAIL is set)
+    if (process.env.ADMIN_EMAIL) {
+      try {
+        const adminEmailHtml = `
+          <h3>New Email Signup</h3>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        `;
 
-    await sendEmail(
-      process.env.ADMIN_EMAIL,
-      'New Email Signup - Beyond Church Walls',
-      adminEmailHtml
-    );
+        await sendEmail(
+          process.env.ADMIN_EMAIL,
+          'New Email Signup - Beyond Church Walls',
+          adminEmailHtml
+        );
+      } catch (adminEmailError) {
+        console.error('Admin email send error (non-fatal):', adminEmailError);
+        // Continue even if admin email fails
+      }
+    }
 
     res.status(200).json({ success: true, message: 'Email signup successful' });
   } catch (error) {
     console.error('Email signup error:', error);
-    res.status(500).json({ error: 'Failed to process signup' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to process signup',
+      message: error.message 
+    });
   }
 };
 

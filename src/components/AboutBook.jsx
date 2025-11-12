@@ -268,7 +268,7 @@ const AboutBook = () => {
                 <span className="text-gold text-2xl font-bold mt-1">•</span>
                 <p className="text-lg leading-relaxed italic text-gray-800 flex-1">
                   Your workplace is your mission field. Your work is your worship.
-                </p>
+            </p>
               </div>
             </div>
             

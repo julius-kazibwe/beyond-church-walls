@@ -47,23 +47,43 @@ const sendEmail = async (to, subject, html, text) => {
   if (!transporter) {
     console.log('Email transporter not configured. Email would be sent to:', to);
     console.log('Subject:', subject);
+    console.log('EMAIL_SERVICE:', process.env.EMAIL_SERVICE);
+    console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+    // Return success even if not configured, so the API doesn't fail
     return { success: false, message: 'Email service not configured' };
   }
 
+  if (!to) {
+    console.log('No recipient email provided');
+    return { success: false, message: 'No recipient email' };
+  }
+
   try {
+    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    if (!fromEmail) {
+      console.log('No FROM email configured');
+      return { success: false, message: 'No FROM email configured' };
+    }
+
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: to || process.env.ADMIN_EMAIL,
+      from: fromEmail,
+      to: to,
       subject,
       html,
-      text,
+      text: text || subject, // Fallback to subject if no text provided
     };
 
     const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Email error:', error);
-    return { success: false, error: error.message };
+    console.error('Email send error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      command: error.command
+    });
+    throw error; // Re-throw so caller can handle it
   }
 };
 

@@ -2,16 +2,20 @@ const { handleCors } = require('./utils/cors');
 const { sendEmail } = require('./utils/email');
 
 module.exports = async (req, res) => {
+  console.log('Email signup function called:', req.method, req.url);
+  
   // Handle CORS
   if (handleCors(req, res)) return;
 
   // Only allow POST requests
   if (req.method !== 'POST') {
+    console.log('Method not allowed:', req.method);
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
   try {
+    console.log('Request body:', req.body);
     const { email } = req.body;
 
     if (!email || !email.includes('@')) {

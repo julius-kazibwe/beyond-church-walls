@@ -22,6 +22,14 @@ const JoinMission = () => {
         body: JSON.stringify({ email }),
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error('Server returned non-JSON response. API endpoint may not be deployed.');
+      }
+
       const data = await response.json();
 
       if (response.ok) {
@@ -33,7 +41,11 @@ const JoinMission = () => {
       }
     } catch (err) {
       console.error('Signup error:', err);
-      setError('Failed to connect to server. Please try again later.');
+      if (err.message.includes('non-JSON')) {
+        setError('API endpoint not found. Please check if serverless functions are deployed.');
+      } else {
+        setError('Failed to connect to server. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }

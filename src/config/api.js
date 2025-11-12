@@ -1,16 +1,28 @@
 // API Configuration
 // In production (Vercel), API routes are on the same domain, so use relative paths
 // In development, use localhost backend or Vercel dev server
-const isProduction = import.meta.env.PROD;
-const isVercel = import.meta.env.VITE_VERCEL || false;
 
-// Use relative paths for Vercel deployment (same domain)
-// Use environment variable if set, otherwise use localhost for dev
+// Check if we're on Vercel (production) by checking the hostname
+const isVercelProduction = typeof window !== 'undefined' && 
+  (window.location.hostname.includes('vercel.app') || 
+   window.location.hostname.includes('vercel.com') ||
+   import.meta.env.PROD);
+
+// Use environment variable if set, otherwise:
+// - Use relative path /api for Vercel production (same domain)
+// - Use localhost for local development
 const API_BASE_URL = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL
-  : (isProduction || isVercel)
+  : (isVercelProduction || import.meta.env.PROD)
     ? '/api'  // Same domain in production
     : 'http://localhost:3001/api';  // Local backend for development
+
+// Debug logging (remove in production if needed)
+if (import.meta.env.DEV) {
+  console.log('API Base URL:', API_BASE_URL);
+  console.log('Is Production:', import.meta.env.PROD);
+  console.log('Is Vercel:', isVercelProduction);
+}
 
 export const API_ENDPOINTS = {
   EMAIL_SIGNUP: `${API_BASE_URL}/email-signup`,

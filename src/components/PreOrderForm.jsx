@@ -8,7 +8,8 @@ const PreOrderForm = () => {
     email: '',
     phone: '',
     interest: '',
-    message: ''
+    message: '',
+    title: '' // For feedback submissions (optional title/position)
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +29,12 @@ const PreOrderForm = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(API_ENDPOINTS.PRE_ORDER, {
+      // If interest is "feedback", use the feedback endpoint
+      const endpoint = formData.interest === 'feedback' 
+        ? API_ENDPOINTS.FEEDBACK 
+        : API_ENDPOINTS.PRE_ORDER;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,15 +53,22 @@ const PreOrderForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setSubmitted(true);
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          interest: '',
-          message: ''
-        });
-        setTimeout(() => setSubmitted(false), 5000);
+      setSubmitted(true);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        interest: '',
+          message: '',
+          title: ''
+      });
+      setTimeout(() => setSubmitted(false), 5000);
+        
+        // If feedback was submitted, trigger a refresh of the feedback list
+        if (formData.interest === 'feedback') {
+          // Dispatch a custom event to notify Endorsements component to refresh
+          window.dispatchEvent(new CustomEvent('feedbackSubmitted'));
+        }
       } else {
         setError(data.error || 'Something went wrong. Please try again.');
       }
@@ -153,9 +166,26 @@ const PreOrderForm = () => {
               </select>
             </div>
             
+            {formData.interest === 'feedback' && (
+              <div>
+                <label htmlFor="title" className="block text-gray-700 font-semibold mb-2">
+                  Title/Position (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g., CEO, Teacher, Pastor, etc."
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 text-gray-900 transition-all duration-200"
+                />
+              </div>
+            )}
+            
             <div>
               <label htmlFor="message" className="block text-gray-700 font-semibold mb-2">
-                Comments or Message
+                {formData.interest === 'feedback' ? 'Your Feedback' : 'Comments or Message'} {formData.interest === 'feedback' && <span className="text-red-500">*</span>}
               </label>
               <textarea
                 id="message"
@@ -163,8 +193,9 @@ const PreOrderForm = () => {
                 value={formData.message}
                 onChange={handleChange}
                 rows="5"
+                required={formData.interest === 'feedback'}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 text-gray-900 resize-none transition-all duration-200"
-                placeholder="Tell us more about your interest or share any feedback..."
+                placeholder={formData.interest === 'feedback' ? "Share your thoughts about Beyond Church Walls..." : "Tell us more about your interest or share any feedback..."}
               ></textarea>
             </div>
             

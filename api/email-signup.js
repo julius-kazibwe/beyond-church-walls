@@ -21,18 +21,13 @@ export default async (req, res) => {
 
     // Send confirmation email to user
     const userEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1a237e;">Thank You for Joining the Mission!</h2>
-        <p>Dear Friend,</p>
-        <p>Thank you for signing up to receive updates about <strong>Beyond Church Walls</strong> by Rev. John William Kasirye.</p>
-        <p>We're excited to share this journey with you and will keep you informed about:</p>
-        <ul>
-          <li>Book launch updates</li>
-          <li>Exclusive content and resources</li>
-          <li>Special events and opportunities</li>
-        </ul>
-        <p>Stay tuned for more information coming soon!</p>
-        <p>Blessings,<br>The Beyond Church Walls Team</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <p>Dear ${name || 'Friend'},</p>
+        <p>Thank you for signing up to receive updates about <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>.</p>
+        <p>We're excited to share this journey with you and will keep you informed about book launch updates, exclusive content, and special opportunities.</p>
+        <p>We pray this book encourages and equips you to live out your faith in every area of life.</p>
+        <p>Warm regards,</p>
+        <p>Rev. John William Kasirye</p>
       </div>
     `;
 

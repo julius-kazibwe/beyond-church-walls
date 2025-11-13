@@ -18,15 +18,29 @@ export default async (req, res) => {
     }
 
     // Send confirmation email to user
+    const getInterestMessage = (interest) => {
+      switch(interest) {
+        case 'pre-order':
+          return 'Thank you for your order of <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>. Your purchase means a lot. You\'ll receive a confirmation once your order has been processed and shipped.';
+        case 'endorse':
+          return 'Thank you for your interest in endorsing <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>. We appreciate your support and will be in touch soon with more information.';
+        case 'request-copy':
+          return 'Thank you for requesting a copy of <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>. We\'ve received your request and will be in touch soon with more information.';
+        case 'feedback':
+          return 'Thank you for your feedback about <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>. Your input is valuable to us.';
+        default:
+          return 'Thank you for your interest in <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>. We\'ve received your request and will be in touch soon.';
+      }
+    };
+
     const userEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1a237e;">Thank You for Your Interest!</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <p>Dear ${name},</p>
-        <p>Thank you for your interest in <strong>Beyond Church Walls</strong>.</p>
-        <p>We've received your request regarding: <strong>${interest}</strong></p>
+        <p>${getInterestMessage(interest)}</p>
         ${message ? `<p>Your message: "${message}"</p>` : ''}
-        <p>We'll be in touch soon with more information.</p>
-        <p>Blessings,<br>The Beyond Church Walls Team</p>
+        <p>We pray this book encourages and equips you to live out your faith in every area of life.</p>
+        <p>Warm regards,</p>
+        <p>Rev. John William Kasirye</p>
       </div>
     `;
 

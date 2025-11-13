@@ -9,18 +9,18 @@ const isVercelProduction = typeof window !== 'undefined' &&
    import.meta.env.PROD);
 
 // Use environment variable if set, otherwise:
-// - Use relative path /api for Vercel production (same domain)
-// - Use localhost for local development
+// - Use relative path /api for both production and development
+// - When using 'vercel dev', it serves both frontend and API on the same port
+// - When using 'npm run dev', API endpoints won't work (use 'vercel dev' instead)
 const API_BASE_URL = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL
-  : (isVercelProduction || import.meta.env.PROD)
-    ? '/api'  // Same domain in production
-    : 'http://localhost:3001/api';  // Local backend for development
+  : '/api';  // Relative path works with both Vercel production and 'vercel dev'
 
 export const API_ENDPOINTS = {
   EMAIL_SIGNUP: `${API_BASE_URL}/email-signup`,
   PRE_ORDER: `${API_BASE_URL}/pre-order`,
   BOOK_PREVIEW_ACCESS: `${API_BASE_URL}/book-preview-access`,
+  FEEDBACK: `${API_BASE_URL}/feedback`,
   HEALTH: `${API_BASE_URL}/health`,
 };
 

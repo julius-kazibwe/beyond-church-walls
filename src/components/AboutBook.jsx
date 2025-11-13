@@ -274,13 +274,10 @@ const AboutBook = () => {
             
             <div className="space-y-6 text-lg leading-relaxed">
               <p>
-                For too long, many believers have separated faith from daily work—reserving worship for Sundays while viewing the rest of the week as secular.
+                <em className="text-navy font-semibold">Beyond Church Walls</em> is a powerful call to live out faith in the everyday world. Rev. John William Kasirye dismantles the false divide between Sunday worship and weekday work, reminding readers that the workplace is not secular ground—it's sacred space where God's presence belongs.
               </p>
               <p>
-                In <em className="text-navy font-semibold">Beyond Church Walls</em>, Rev. John William Kasirye dismantles this false divide, revealing how workplaces—offices, classrooms, clinics, farms, and boardrooms—are sacred spaces where God's presence belongs.
-              </p>
-              <p>
-                Drawing from Scripture, real-life stories, and his journey from statistics to ministry: Kasirye invites readers to rediscover work as worship and ministry as a lifestyle—not a title. Through practical tools like the <strong className="text-navy">WISE Framework</strong> (Worship, Integrity, Service, Excellence) and the <strong className="text-navy">Faith Relevance Index Quotient</strong>, this book equips believers to live out their calling with Purpose.
+                Drawing from Scripture, biblical examples, and his own professional journey from statistics to ministry, Kasirye shows how every believer can live with purpose, integrity, and excellence. Using practical tools like the <strong className="text-navy">WISE Framework</strong> (Worship, Integrity, Service, Excellence) and the <strong className="text-navy">Faith Relevance Index Quotient (FRIQ)</strong>, this book equips readers to integrate faith and work, transforming ordinary professions into extraordinary platforms for God's glory.
               </p>
             </div>
             

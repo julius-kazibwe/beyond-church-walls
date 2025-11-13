@@ -19,13 +19,13 @@ export default async (req, res) => {
 
     // Send confirmation email to user
     const userEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1a237e;">Access Granted to Book Preview</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <p>Dear Friend,</p>
-        <p>Thank you for your interest in <strong>Beyond Church Walls</strong>!</p>
+        <p>Thank you for your interest in <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>.</p>
         <p>You now have access to preview the book sample. We hope you enjoy reading it and that it inspires you in your journey of integrating faith and work.</p>
-        <p>If you have any questions or would like to learn more, please don't hesitate to reach out.</p>
-        <p>Blessings,<br>Rev. John William Kasirye<br>The Beyond Church Walls Team</p>
+        <p>We pray this book encourages and equips you to live out your faith in every area of life.</p>
+        <p>Warm regards,</p>
+        <p>Rev. John William Kasirye</p>
       </div>
     `;
 

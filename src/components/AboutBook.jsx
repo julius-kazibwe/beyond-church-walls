@@ -21,6 +21,21 @@ const AboutBook = () => {
     }
   }, []);
 
+  // Check if URL hash is #wise-assessment and open modal
+  useEffect(() => {
+    const checkHash = () => {
+      if (window.location.hash === '#wise-assessment') {
+        setShowWISEModal(true);
+        // Remove hash after opening modal
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+    
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
     if (email) {
@@ -276,11 +291,12 @@ const AboutBook = () => {
             </div>
             
             <motion.div
+              id="wise-assessment"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="mt-10 p-8 bg-gradient-to-br from-gold/10 via-gold/5 to-navy/5 rounded-xl border-2 border-gold/30 shadow-lg"
+              className="mt-10 p-8 bg-gradient-to-br from-gold/10 via-gold/5 to-navy/5 rounded-xl border-2 border-gold/30 shadow-lg scroll-mt-20"
             >
               <div className="text-center mb-6">
                 <h4 className="text-2xl font-bold text-navy mb-2">The WISE Framework</h4>

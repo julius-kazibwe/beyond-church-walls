@@ -9,8 +9,17 @@ const Footer = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8"
         >
+          {/* Logo */}
+          <div className="flex items-start justify-center md:justify-start">
+            <img
+              src="/logo_bcws.png"
+              alt="Beyond Church Walls - Work and Ministry"
+              className="h-20 md:h-24 lg:h-28 w-auto object-contain"
+            />
+          </div>
+          
           {/* Contact Info */}
           <div>
             <h3 className="text-xl font-bold mb-4 text-gold">Contact</h3>

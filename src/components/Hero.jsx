@@ -28,13 +28,19 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
-              className="flex flex-row gap-4 justify-center items-center mb-12"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
             >
               <a
                 href="#join-mission"
                 className="px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-gold text-navy font-bold text-sm sm:text-base md:text-lg rounded-lg hover:bg-gold/90 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl whitespace-nowrap"
               >
                 Join the Mission
+              </a>
+              <a
+                href="#wise-assessment"
+                className="px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-md border-2 border-gold text-gold font-bold text-sm sm:text-base md:text-lg rounded-lg hover:bg-gold hover:text-navy transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl whitespace-nowrap"
+              >
+                Take WISE Assessment
               </a>
               <a
                 href="#pre-order"

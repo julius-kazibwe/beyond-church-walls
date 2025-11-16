@@ -14,6 +14,7 @@ const Navigation = () => {
 
   const navLinks = [
     { name: 'About Book', href: '#about-book' },
+    { name: 'WISE Assessment', href: '#wise-assessment', highlight: true },
     { name: 'About Author', href: '#about-author' },
     { name: 'Endorsements', href: '#endorsements' },
     { name: 'Get Updates', href: '#join-mission' },
@@ -43,22 +44,39 @@ const Navigation = () => {
           <a
             href="#hero"
             onClick={(e) => scrollToSection(e, '#hero')}
-            className={`text-xl md:text-2xl font-bold transition-colors duration-200 ${
-              isScrolled ? 'text-navy' : 'text-white'
-            }`}
+            className="flex items-center h-full py-2 transition-opacity duration-200 hover:opacity-80"
           >
-            Beyond Church Walls
+            <img
+              src="/logo_bcws.png"
+              alt="Beyond Church Walls - Work and Ministry"
+              className={`h-14 md:h-16 lg:h-20 w-auto object-contain transition-all duration-300 ${
+                isScrolled 
+                  ? 'brightness-0 saturate-100' 
+                  : ''
+              }`}
+              style={isScrolled ? {
+                filter: 'brightness(0) saturate(100%) invert(15%) sepia(95%) saturate(2000%) hue-rotate(220deg) brightness(0.9) contrast(1.2)'
+              } : {}}
+            />
           </a>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
                 onClick={(e) => scrollToSection(e, link.href)}
                 className={`text-sm font-medium transition-colors duration-200 hover:text-gold ${
-                  isScrolled ? 'text-navy' : 'text-white'
+                  link.highlight
+                    ? `px-4 py-2 rounded-lg font-semibold ${
+                        isScrolled 
+                          ? 'bg-gold text-navy hover:bg-yellow-500' 
+                          : 'bg-gold/20 text-gold hover:bg-gold/30'
+                      }`
+                    : isScrolled 
+                    ? 'text-navy' 
+                    : 'text-white'
                 }`}
               >
                 {link.name}
@@ -97,7 +115,11 @@ const Navigation = () => {
                   href={link.href}
                   onClick={(e) => scrollToSection(e, link.href)}
                   className={`text-base font-medium transition-colors duration-200 hover:text-gold px-2 py-1 ${
-                    isScrolled ? 'text-navy' : 'text-white'
+                    link.highlight
+                      ? `bg-gold/20 text-gold rounded-lg font-semibold`
+                      : isScrolled 
+                      ? 'text-navy' 
+                      : 'text-white'
                   }`}
                 >
                   {link.name}

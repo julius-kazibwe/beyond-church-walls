@@ -2,12 +2,14 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../config/api';
 import SecurePDFViewer from './SecurePDFViewer';
+import WISEAssessmentModal from './WISEAssessmentModal';
 
 const AboutBook = () => {
   const [email, setEmail] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [previewToken, setPreviewToken] = useState(null);
+  const [showWISEModal, setShowWISEModal] = useState(false);
 
   // Check if user already has access (from localStorage)
   useEffect(() => {
@@ -280,7 +282,21 @@ const AboutBook = () => {
               transition={{ duration: 0.6 }}
               className="mt-10 p-8 bg-gradient-to-br from-gold/10 via-gold/5 to-navy/5 rounded-xl border-2 border-gold/30 shadow-lg"
             >
-              <h4 className="text-2xl font-bold text-navy mb-6 text-center">The WISE Framework</h4>
+              <div className="text-center mb-6">
+                <h4 className="text-2xl font-bold text-navy mb-2">The WISE Framework</h4>
+                <p className="text-gray-600 mb-4">
+                  Assess your faith integration at work with the WISE Framework and discover your Faith Relevance Index Quotient (FRIQ)
+                </p>
+                <button
+                  onClick={() => setShowWISEModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-semibold rounded-lg hover:bg-blue-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Take WISE Assessment
+                </button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {['Worship', 'Integrity', 'Service', 'Excellence'].map((item, index) => (
                   <motion.div
@@ -300,6 +316,12 @@ const AboutBook = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* WISE Assessment Modal */}
+      <WISEAssessmentModal
+        isOpen={showWISEModal}
+        onClose={() => setShowWISEModal(false)}
+      />
     </section>
   );
 };

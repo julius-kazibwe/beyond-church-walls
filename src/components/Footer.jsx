@@ -39,7 +39,7 @@ const Footer = () => {
             &copy; {new Date().getFullYear()} Beyond Church Walls. All rights reserved.
           </p>
           <p className="text-gold font-semibold">
-            All proceeds go toward missions fund
+            All proceeds go toward funding clean water projects in Uganda
           </p>
         </div>
       </div>

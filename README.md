@@ -181,7 +181,7 @@ This project is private and proprietary.
 
 - All forms are connected to the backend API and will send email notifications.
 - The backend must be running and configured with email credentials for forms to work.
-- All proceeds from the book go toward missions fund (as stated in the footer).
+- All proceeds from the book go toward funding clean water projects in Uganda (as stated in the footer).
 - The site is fully responsive and works on mobile, tablet, and desktop devices.
 
 ## Support

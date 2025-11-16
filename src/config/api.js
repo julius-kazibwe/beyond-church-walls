@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   EMAIL_SIGNUP: `${API_BASE_URL}/email-signup`,
   PRE_ORDER: `${API_BASE_URL}/pre-order`,
   BOOK_PREVIEW_ACCESS: `${API_BASE_URL}/book-preview-access`,
+  BOOK_PREVIEW_PDF: `${API_BASE_URL}/book-preview-pdf`,
   FEEDBACK: `${API_BASE_URL}/feedback`,
   HEALTH: `${API_BASE_URL}/health`,
 };

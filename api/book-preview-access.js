@@ -1,5 +1,6 @@
 import { handleCors } from './utils/cors.js';
 import { sendEmail } from './utils/email.js';
+import { generatePreviewToken } from './utils/jwt.js';
 
 export default async (req, res) => {
   try {
@@ -62,7 +63,14 @@ export default async (req, res) => {
       }
     }
 
-    res.status(200).json({ success: true, message: 'Access granted' });
+    // Generate JWT token for PDF access
+    const token = generatePreviewToken(email);
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Access granted',
+      token // Return token to frontend
+    });
   } catch (error) {
     console.error('Book preview access error:', error);
     res.status(500).json({ 

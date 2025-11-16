@@ -1,17 +1,21 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../config/api';
+import SecurePDFViewer from './SecurePDFViewer';
 
 const AboutBook = () => {
   const [email, setEmail] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [previewToken, setPreviewToken] = useState(null);
 
   // Check if user already has access (from localStorage)
   useEffect(() => {
     const storedAccess = localStorage.getItem('bookPreviewAccess');
-    if (storedAccess === 'granted') {
+    const storedToken = localStorage.getItem('bookPreviewToken');
+    if (storedAccess === 'granted' && storedToken) {
       setHasAccess(true);
+      setPreviewToken(storedToken);
     }
   }, []);
 
@@ -36,15 +40,21 @@ const AboutBook = () => {
           localStorage.setItem('bookPreviewAccess', 'granted');
           localStorage.setItem('bookPreviewEmail', email);
           setHasAccess(true);
+          // Note: Without token, PDF won't load, but user sees access granted
           return;
         }
 
         const data = await response.json();
 
         if (response.ok) {
-          // Grant access and store in localStorage
+          // Grant access and store token in localStorage
+          const token = data.token;
           localStorage.setItem('bookPreviewAccess', 'granted');
           localStorage.setItem('bookPreviewEmail', email);
+          if (token) {
+            localStorage.setItem('bookPreviewToken', token);
+            setPreviewToken(token);
+          }
           setHasAccess(true);
           setSubmitted(true);
           
@@ -174,35 +184,17 @@ const AboutBook = () => {
                       </svg>
                       <span className="font-semibold">Preview Access Granted</span>
                     </div>
-                    <a
-                      href="/book-sample.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm text-navy hover:text-gold font-semibold transition-colors border border-gray-300 hover:border-gold rounded-lg"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download
-                    </a>
                   </div>
                   
-                  {/* Embedded PDF Viewer - Minimal controls */}
-                  <div className="w-full rounded-lg overflow-hidden shadow-xl bg-gray-50 border border-gray-200" style={{ minHeight: '650px' }}>
-                    <iframe
-                      src="/book-sample.pdf#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
-                      className="w-full h-full"
-                      style={{ minHeight: '650px', height: '85vh', maxHeight: '1000px' }}
-                      title="Beyond Church Walls Book Preview"
-                      allow="fullscreen"
-                    >
-                      <p className="p-8 text-center text-gray-600">
-                        Your browser does not support embedded PDFs. 
-                        <a href="/book-sample.pdf" className="text-navy hover:text-gold underline ml-1 font-semibold" target="_blank" rel="noopener noreferrer">
-                          Download the PDF instead
-                        </a>
-                      </p>
-                    </iframe>
+                  {/* Secure PDF Viewer - Canvas-based, download prevention */}
+                  <div className="w-full rounded-lg overflow-hidden shadow-xl bg-gray-50 border border-gray-200 relative" style={{ minHeight: '650px', height: '85vh', maxHeight: '1000px', display: 'flex', flexDirection: 'column' }}>
+                    {previewToken ? (
+                      <SecurePDFViewer token={previewToken} />
+                    ) : (
+                      <div className="p-8 text-center text-gray-600">
+                        <p>Please refresh the page to load the preview.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

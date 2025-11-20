@@ -22,7 +22,7 @@ export default async (req, res) => {
     // Send confirmation email to user
     const userEmailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <p>Dear ${name || 'Friend'},</p>
+        <p>Dear Friend,</p>
         <p>Thank you for signing up to receive updates about <strong>Beyond Church Walls: Where Work and Worship Intersect</strong>.</p>
         <p>We're excited to share this journey with you and will keep you informed about book launch updates, exclusive content, and special opportunities.</p>
         <p>We pray this book encourages and equips you to live out your faith in every area of life.</p>

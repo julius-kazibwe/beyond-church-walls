@@ -41,6 +41,25 @@ const AboutBook = () => {
     }
   }, []);
 
+  // Listen for token expiration events from PDF viewer
+  useEffect(() => {
+    const handleTokenExpired = () => {
+      // Clear stored access and token
+      localStorage.removeItem('bookPreviewAccess');
+      localStorage.removeItem('bookPreviewToken');
+      localStorage.removeItem('bookPreviewEmail');
+      // Reset state to show email form again
+      setHasAccess(false);
+      setPreviewToken(null);
+      setEmail(localStorage.getItem('bookPreviewEmail') || '');
+      // Show message to user
+      alert('Your preview access has expired. Please enter your email again to get a new access token.');
+    };
+
+    window.addEventListener('tokenExpired', handleTokenExpired);
+    return () => window.removeEventListener('tokenExpired', handleTokenExpired);
+  }, []);
+
   // Check if URL hash is #wise-assessment and open modal
   useEffect(() => {
     const checkHash = () => {

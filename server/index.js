@@ -20,6 +20,10 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy (required for Render and other hosting platforms)
+// This allows Express to correctly identify client IPs behind a proxy
+app.set('trust proxy', true);
+
 // Security: Sanitize HTML to prevent XSS
 const sanitizeHtml = (str) => {
   if (!str || typeof str !== 'string') return '';
@@ -97,12 +101,16 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Rate limiting (AFTER CORS) - only in production
+// Note: trust proxy is set above, so rate limiter will use X-Forwarded-For header
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in development
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    trustProxy: true, // Explicitly tell rate limiter we trust the proxy
+  },
   skip: (req) => {
     // Skip rate limiting for localhost in development
     if (process.env.NODE_ENV !== 'production') {
@@ -119,6 +127,9 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    trustProxy: true, // Explicitly tell rate limiter we trust the proxy
+  },
   skip: (req) => {
     // Skip rate limiting for localhost in development
     if (process.env.NODE_ENV !== 'production') {

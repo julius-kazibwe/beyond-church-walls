@@ -33,6 +33,15 @@ const SecurePDFViewer = ({ token }) => {
         });
 
         if (!response.ok) {
+          // If token is invalid (401), clear it and trigger token refresh
+          if (response.status === 401) {
+            console.warn('Token invalid or expired, clearing stored token');
+            localStorage.removeItem('bookPreviewToken');
+            localStorage.removeItem('bookPreviewAccess');
+            // Dispatch event to parent to request new token
+            window.dispatchEvent(new CustomEvent('tokenExpired'));
+            throw new Error('Your preview access has expired. Please request access again.');
+          }
           throw new Error('Failed to load PDF');
         }
 

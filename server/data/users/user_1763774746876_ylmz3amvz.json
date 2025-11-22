@@ -1,0 +1,17 @@
+{
+  "id": "user_1763774746876_ylmz3amvz",
+  "email": "kjuliusht@gmail.com",
+  "name": "Vivian Namubiru",
+  "password": "$2b$10$BPRPwWmBy6/XLtxl0ULSi.K98ReTVPO3VIF8LRH5v2mwQf5uU3jf2",
+  "createdAt": "2025-11-22T01:25:46.876Z",
+  "lastLogin": "2025-11-22T01:25:46.880Z",
+  "progress": {
+    "baselineCompleted": false,
+    "baselineFRIQ": null,
+    "completedWeeks": [],
+    "assessments": {},
+    "currentWeek": 0,
+    "reflections": {},
+    "practicalApplications": {}
+  }
+}

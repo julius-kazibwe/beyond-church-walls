@@ -25,10 +25,10 @@ yarn-error.log*
 lerna-debug.log*
 
 # Backend
-/server/data/
-/server/node_modules/
-/server/.env
-/server
+# /server/data/
+# /server/node_modules/
+# /server/.env
+# /server
 
 # IDE
 .vscode/
@@ -37,3 +37,4 @@ lerna-debug.log*
 *.swo
 *~
 .vercel
+/api/

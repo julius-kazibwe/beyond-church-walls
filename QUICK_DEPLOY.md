@@ -1,5 +1,8 @@
 # Quick Deploy to Vercel (Full-Stack)
 
+> **Note**: This guide is for deploying with Vercel serverless functions.  
+> **For Render deployment** (separate backend server), see [`MIGRATION_TO_RENDER.md`](./MIGRATION_TO_RENDER.md)
+
 ## ✅ What's Ready
 
 - ✅ Frontend React app

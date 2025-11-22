@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 
 const Footer = () => {
+
   return (
     <footer id="contact" className="bg-navy text-white py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -34,12 +35,23 @@ const Footer = () => {
             </p>
           </div>
           
-          {/* Mission Statement */}
+          {/* Vision & Mission */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-gold">Our Mission</h3>
-            <p className="text-white/80 text-sm">
-              Empowering believers to extend their faith beyond the sanctuary and make a lasting impact in their communities.
+            <h3 className="text-xl font-bold mb-4 text-gold">Vision & Mission</h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-gold font-semibold mb-1">Vision:</p>
+                <p className="text-white/80">
+                  To see believers carry God's presence beyond church walls and transform every sphere of society.
+                </p>
+              </div>
+              <div>
+                <p className="text-gold font-semibold mb-1">Mission:</p>
+                <p className="text-white/80">
+                  Activate believers to manifest God's presence—everywhere, every moment, every task.
             </p>
+              </div>
+            </div>
           </div>
         </motion.div>
         
@@ -47,8 +59,16 @@ const Footer = () => {
           <p className="text-white/80 mb-2">
             &copy; {new Date().getFullYear()} Beyond Church Walls. All rights reserved.
           </p>
-          <p className="text-gold font-semibold">
+          <p className="text-gold font-semibold mb-4">
             All proceeds go toward funding clean water projects in Uganda
+          </p>
+          <p className="text-white/60 text-sm">
+            <a 
+              href="/admin" 
+              className="hover:text-gold transition-colors underline"
+            >
+              Admin
+            </a>
           </p>
         </div>
       </div>

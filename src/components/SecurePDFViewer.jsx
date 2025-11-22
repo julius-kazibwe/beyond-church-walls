@@ -13,6 +13,7 @@ const SecurePDFViewer = ({ token }) => {
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const renderTaskRef = useRef(null);
 
   // Load PDF
   useEffect(() => {
@@ -59,6 +60,12 @@ const SecurePDFViewer = ({ token }) => {
 
     const renderPage = async () => {
       try {
+        // Cancel any pending render operation
+        if (renderTaskRef.current) {
+          renderTaskRef.current.cancel();
+          renderTaskRef.current = null;
+        }
+
         const page = await pdfDoc.getPage(pageNum);
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
@@ -72,13 +79,30 @@ const SecurePDFViewer = ({ token }) => {
           viewport: viewport,
         };
 
-        await page.render(renderContext).promise;
+        // Store the render task so we can cancel it if needed
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+
+        await renderTask.promise;
+        renderTaskRef.current = null;
       } catch (err) {
+        // Ignore cancellation errors
+        if (err.name !== 'RenderingCancelledException') {
         console.error('Error rendering page:', err);
+        }
+        renderTaskRef.current = null;
       }
     };
 
     renderPage();
+
+    // Cleanup: cancel render on unmount or when dependencies change
+    return () => {
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+        renderTaskRef.current = null;
+      }
+    };
   }, [pdfDoc, pageNum]);
 
   // Disable right-click and text selection

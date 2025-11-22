@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../config/api';
 import SecurePDFViewer from './SecurePDFViewer';
 import WISEAssessmentModal from './WISEAssessmentModal';
+import { saveBaselineAssessment } from '../utils/progressTracker';
 
 const AboutBook = () => {
   const [email, setEmail] = useState('');
@@ -10,6 +11,25 @@ const AboutBook = () => {
   const [submitted, setSubmitted] = useState(false);
   const [previewToken, setPreviewToken] = useState(null);
   const [showWISEModal, setShowWISEModal] = useState(false);
+  const [launchDate, setLaunchDate] = useState('Mid-December');
+
+  // Fetch site settings (launch date)
+  useEffect(() => {
+    const fetchSiteSettings = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.SITE_SETTINGS);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            setLaunchDate(data.settings.launchDate || 'Mid-December');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
+      }
+    };
+    fetchSiteSettings();
+  }, []);
 
   // Check if user already has access (from localStorage)
   useEffect(() => {
@@ -229,7 +249,7 @@ const AboutBook = () => {
                 <h3 className="text-xl md:text-2xl font-bold text-navy mb-4">Launch Information</h3>
                 <div className="space-y-3 text-gray-700">
                   <p className="text-lg">
-                    <span className="font-semibold text-navy">Proposed Launch Date:</span> Mid-December
+                    <span className="font-semibold text-navy">Proposed Launch Date:</span> {launchDate}
                   </p>
                   <div className="pt-3 border-t border-gold/20">
                     <p className="font-semibold text-navy mb-2">Available Formats:</p>
@@ -310,10 +330,10 @@ const AboutBook = () => {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Take WISE Assessment
+                  Start Assessment
                 </button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
                 {['Worship', 'Integrity', 'Service', 'Excellence'].map((item, index) => (
                   <motion.div
                     key={item}
@@ -328,6 +348,39 @@ const AboutBook = () => {
                   </motion.div>
                 ))}
               </div>
+              
+              {/* Core Values - WISETIP */}
+              <div className="mt-8 pt-6 border-t border-gold/20">
+                <h5 className="text-xl font-bold text-navy mb-4 text-center">Our Core Values</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { letter: 'W', name: 'Worship in Everyday Life', desc: 'Honoring God in all we do; every task is an altar, and work is worship.' },
+                    { letter: 'I', name: 'Integrity', desc: 'The character of Christ—everywhere, every time, every task.' },
+                    { letter: 'S', name: 'Service / Stewardship', desc: 'Serving others. Managing time, talent, and opportunity with Kingdom responsibility.' },
+                    { letter: 'E', name: 'Excellence', desc: 'Excellence reflects the God we represent.' },
+                    { letter: 'T', name: 'Transformation', desc: 'Because God transforms us, the environment around us shifts.' },
+                    { letter: 'I', name: 'Influence', desc: 'Shaping culture through presence, words, and decisions.' },
+                    { letter: 'P', name: 'Presence', desc: 'Carrying God\'s presence into every space—everywhere, every moment, every task.' }
+                  ].map((value, index) => (
+                    <motion.div
+                      key={`${value.letter}-${index}-${value.name}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: index * 0.05 }}
+                      className="p-4 bg-white/70 rounded-lg border border-gold/20"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl font-bold text-gold flex-shrink-0">{value.letter}</div>
+                        <div>
+                          <div className="font-semibold text-navy mb-1">{value.name}</div>
+                          <div className="text-sm text-gray-600">{value.desc}</div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </div>
         </motion.div>
@@ -337,6 +390,15 @@ const AboutBook = () => {
       <WISEAssessmentModal
         isOpen={showWISEModal}
         onClose={() => setShowWISEModal(false)}
+        onComplete={async (results) => {
+          // Save the assessment results when taken independently
+          try {
+            await saveBaselineAssessment(results);
+            console.log('WISE assessment results saved successfully');
+          } catch (error) {
+            console.error('Error saving WISE assessment results:', error);
+          }
+        }}
       />
     </section>
   );

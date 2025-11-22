@@ -1,0 +1,258 @@
+// Progress tracking utilities for weekly study program
+
+import { isAuthenticated, authenticatedFetch } from './auth';
+import { API_ENDPOINTS } from '../config/api';
+
+const STORAGE_KEY = 'bcw_weekly_progress';
+
+// Sync progress to backend if authenticated
+const syncToBackend = async (progress) => {
+  if (!isAuthenticated()) {
+    return false;
+  }
+
+  try {
+    // Also get reflections and practical applications
+    const reflections = {};
+    const practicalApplications = {};
+    
+    for (let i = 1; i <= 12; i++) {
+      const weekReflections = localStorage.getItem(`week_${i}_reflections`);
+      const weekPractical = localStorage.getItem(`week_${i}_practical`);
+      if (weekReflections) {
+        try {
+          reflections[i] = JSON.parse(weekReflections);
+        } catch (e) {
+          console.warn(`Error parsing reflections for week ${i}:`, e);
+        }
+      }
+      if (weekPractical) {
+        practicalApplications[i] = weekPractical;
+      }
+    }
+
+    const progressToSync = {
+      ...progress,
+      reflections,
+      practicalApplications
+    };
+
+    const response = await authenticatedFetch(API_ENDPOINTS.PROGRESS, {
+      method: 'POST',
+      body: JSON.stringify({ progress: progressToSync }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Error syncing progress to backend:', error);
+    return false;
+  }
+};
+
+// Load progress from backend if authenticated
+const loadFromBackend = async () => {
+  if (!isAuthenticated()) {
+    return null;
+  }
+
+  try {
+    const response = await authenticatedFetch(API_ENDPOINTS.PROGRESS);
+    if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        return data.progress;
+      } else {
+        const text = await response.text();
+        console.error('Expected JSON but got:', text.substring(0, 100));
+      }
+    } else {
+      // If not ok, try to get error message
+      try {
+        const errorData = await response.json();
+        console.error('Error loading progress:', errorData);
+      } catch (e) {
+        console.error('Error loading progress, status:', response.status);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading progress from backend:', error);
+  }
+  return null;
+};
+
+export const getProgress = async () => {
+  // Default progress structure
+  const defaultProgress = {
+    baselineCompleted: false,
+    baselineFRIQ: null,
+    completedWeeks: [],
+    assessments: {},
+    currentWeek: 0 // 0 means baseline not completed
+  };
+
+  // Try to load from backend first if authenticated
+  if (isAuthenticated()) {
+    const backendProgress = await loadFromBackend();
+    if (backendProgress) {
+      // Ensure all required fields exist with defaults
+      const normalizedProgress = {
+        ...defaultProgress,
+        ...backendProgress,
+        completedWeeks: Array.isArray(backendProgress.completedWeeks) 
+          ? backendProgress.completedWeeks 
+          : [],
+        assessments: backendProgress.assessments && typeof backendProgress.assessments === 'object'
+          ? backendProgress.assessments
+          : {},
+        reflections: backendProgress.reflections && typeof backendProgress.reflections === 'object'
+          ? backendProgress.reflections
+          : {},
+        practicalApplications: backendProgress.practicalApplications && typeof backendProgress.practicalApplications === 'object'
+          ? backendProgress.practicalApplications
+          : {}
+      };
+      
+      // Also sync reflections and practical applications to localStorage
+      if (normalizedProgress.reflections) {
+        Object.entries(normalizedProgress.reflections).forEach(([week, data]) => {
+          localStorage.setItem(`week_${week}_reflections`, JSON.stringify(data));
+        });
+      }
+      if (normalizedProgress.practicalApplications) {
+        Object.entries(normalizedProgress.practicalApplications).forEach(([week, data]) => {
+          localStorage.setItem(`week_${week}_practical`, data);
+        });
+      }
+      // Save to localStorage as backup
+      const { reflections, practicalApplications, ...progressToStore } = normalizedProgress;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progressToStore));
+      return normalizedProgress;
+    }
+  }
+
+  // Fallback to localStorage
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Ensure all required fields exist
+      return {
+        ...defaultProgress,
+        ...parsed,
+        completedWeeks: Array.isArray(parsed.completedWeeks) 
+          ? parsed.completedWeeks 
+          : [],
+        assessments: parsed.assessments && typeof parsed.assessments === 'object'
+          ? parsed.assessments
+          : {}
+      };
+    }
+    return defaultProgress;
+  } catch (error) {
+    console.error('Error reading progress:', error);
+    return defaultProgress;
+  }
+};
+
+export const saveProgress = async (progress) => {
+  try {
+    // Save to localStorage first
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    
+    // Sync to backend if authenticated
+    await syncToBackend(progress);
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving progress:', error);
+    return false;
+  }
+};
+
+export const saveBaselineAssessment = async (results) => {
+  const progress = await getProgress();
+  progress.baselineCompleted = true;
+  progress.baselineFRIQ = results.FRIQ;
+  progress.assessments['baseline'] = {
+    ...results,
+    completedAt: new Date().toISOString()
+  };
+  // After baseline, current week becomes 1
+  if (progress.currentWeek === 0) {
+    progress.currentWeek = 1;
+  }
+  return await saveProgress(progress);
+};
+
+export const saveAssessmentResult = async (weekNumber, results) => {
+  const progress = await getProgress();
+  
+  // Ensure completedWeeks is an array
+  if (!Array.isArray(progress.completedWeeks)) {
+    progress.completedWeeks = [];
+  }
+  
+  // Ensure assessments is an object
+  if (!progress.assessments || typeof progress.assessments !== 'object') {
+    progress.assessments = {};
+  }
+  
+  progress.assessments[weekNumber] = {
+    ...results,
+    completedAt: new Date().toISOString()
+  };
+  
+  // Mark week as completed if not already
+  if (!progress.completedWeeks.includes(weekNumber)) {
+    progress.completedWeeks.push(weekNumber);
+    progress.completedWeeks.sort((a, b) => a - b);
+  }
+  
+  // Update current week to next uncompleted week
+  const totalWeeks = 12; // Update this based on your total weeks
+  for (let i = 1; i <= totalWeeks; i++) {
+    if (!progress.completedWeeks.includes(i)) {
+      progress.currentWeek = i;
+      break;
+    }
+  }
+  
+  return await saveProgress(progress);
+};
+
+export const getAssessmentResult = async (weekNumber) => {
+  const progress = await getProgress();
+  return progress.assessments[weekNumber] || null;
+};
+
+export const isWeekCompleted = async (weekNumber) => {
+  const progress = await getProgress();
+  return Array.isArray(progress.completedWeeks) && progress.completedWeeks.includes(weekNumber);
+};
+
+export const getCurrentWeek = async () => {
+  const progress = await getProgress();
+  return progress.currentWeek || 0; // 0 means baseline not completed
+};
+
+export const isBaselineCompleted = async () => {
+  const progress = await getProgress();
+  return progress.baselineCompleted || false;
+};
+
+export const getBaselineFRIQ = async () => {
+  const progress = await getProgress();
+  return progress.baselineFRIQ || null;
+};
+
+export const resetProgress = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    return true;
+  } catch (error) {
+    console.error('Error resetting progress:', error);
+    return false;
+  }
+};
+

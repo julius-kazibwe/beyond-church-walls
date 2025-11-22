@@ -29,17 +29,90 @@ const PreOrderForm = () => {
     setLoading(true);
 
     try {
+      // Validate required fields based on interest type
+      if (formData.interest === 'feedback') {
+        if (!formData.name || formData.name.trim().length === 0) {
+          setError('Name is required');
+          setLoading(false);
+          return;
+        }
+        if (!formData.email || formData.email.trim().length === 0) {
+          setError('Email is required');
+          setLoading(false);
+          return;
+        }
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email.trim())) {
+          setError('Please enter a valid email address');
+          setLoading(false);
+          return;
+        }
+        if (!formData.message || formData.message.trim().length === 0) {
+          setError('Message is required');
+          setLoading(false);
+          return;
+        }
+      }
+      
+      if (formData.interest === 'endorse') {
+        if (!formData.name || formData.name.trim().length === 0) {
+          setError('Name is required');
+          setLoading(false);
+          return;
+        }
+        if (!formData.email || formData.email.trim().length === 0) {
+          setError('Email is required');
+          setLoading(false);
+          return;
+        }
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email.trim())) {
+          setError('Please enter a valid email address');
+          setLoading(false);
+          return;
+        }
+        if (!formData.title || formData.title.trim().length === 0) {
+          setError('Title/Position is required for endorsements');
+          setLoading(false);
+          return;
+        }
+        if (!formData.message || formData.message.trim().length === 0) {
+          setError('Endorsement quote is required');
+          setLoading(false);
+          return;
+        }
+      }
+
       // If interest is "feedback", use the feedback endpoint
       const endpoint = formData.interest === 'feedback' 
         ? API_ENDPOINTS.FEEDBACK 
         : API_ENDPOINTS.PRE_ORDER;
+
+      // Prepare data to send - for feedback, only send relevant fields
+      // For endorse, include title and message (quote)
+      const dataToSend = formData.interest === 'feedback'
+        ? {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            message: formData.message.trim(),
+            title: formData.title ? formData.title.trim() : ''
+          }
+        : {
+            ...formData,
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            title: formData.title ? formData.title.trim() : '',
+            message: formData.message ? formData.message.trim() : ''
+          };
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
 
       // Check if response is JSON
@@ -166,10 +239,11 @@ const PreOrderForm = () => {
               </select>
             </div>
             
-            {formData.interest === 'feedback' && (
+            {(formData.interest === 'feedback' || formData.interest === 'endorse') && (
               <div>
                 <label htmlFor="title" className="block text-gray-700 font-semibold mb-2">
-                  Title/Position (Optional)
+                  Title/Position {formData.interest === 'endorse' && <span className="text-red-500">*</span>}
+                  {formData.interest === 'feedback' && <span className="text-gray-500 text-sm"> (Optional)</span>}
                 </label>
                 <input
                   type="text"
@@ -177,7 +251,8 @@ const PreOrderForm = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g., CEO, Teacher, Pastor, etc."
+                  required={formData.interest === 'endorse'}
+                  placeholder="e.g., CEO, Teacher, Pastor, Senior Pastor, etc."
                   className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 text-gray-900 transition-all duration-200"
                 />
               </div>
@@ -185,7 +260,8 @@ const PreOrderForm = () => {
             
             <div>
               <label htmlFor="message" className="block text-gray-700 font-semibold mb-2">
-                {formData.interest === 'feedback' ? 'Your Feedback' : 'Comments or Message'} {formData.interest === 'feedback' && <span className="text-red-500">*</span>}
+                {formData.interest === 'feedback' ? 'Your Feedback' : formData.interest === 'endorse' ? 'Your Endorsement Quote' : 'Comments or Message'} 
+                {(formData.interest === 'feedback' || formData.interest === 'endorse') && <span className="text-red-500">*</span>}
               </label>
               <textarea
                 id="message"
@@ -193,9 +269,13 @@ const PreOrderForm = () => {
                 value={formData.message}
                 onChange={handleChange}
                 rows="5"
-                required={formData.interest === 'feedback'}
+                required={formData.interest === 'feedback' || formData.interest === 'endorse'}
                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20 text-gray-900 resize-none transition-all duration-200"
-                placeholder={formData.interest === 'feedback' ? "Share your thoughts about Beyond Church Walls..." : "Tell us more about your interest or share any feedback..."}
+                placeholder={formData.interest === 'feedback' 
+                  ? "Share your thoughts about Beyond Church Walls..." 
+                  : formData.interest === 'endorse'
+                  ? "Share your endorsement quote or testimonial about Beyond Church Walls..."
+                  : "Tell us more about your interest or share any feedback..."}
               ></textarea>
             </div>
             

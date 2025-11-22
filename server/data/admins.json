@@ -1,0 +1,30 @@
+[
+  {
+    "email": "admin@beyondchurchwalls.com",
+    "password": "$2b$10$5uFT1uTT.BRSHnkt9XvExeIYl8EMxZhSxl3r9HOaaLlsD1pFoN8OG",
+    "name": "Main Admin",
+    "createdAt": "2025-11-21T21:23:50.190Z",
+    "lastLogin": "2025-11-21T21:29:25.798Z"
+  },
+  {
+    "email": "admin1@test.com",
+    "password": "$2b$10$IspC7XHhYrm1TbUKjdIn.eOChBGb1utLhfDsy6.qBFR2CJIW5q5f2",
+    "name": "Test Admin 1",
+    "createdAt": "2025-11-21T21:23:50.437Z",
+    "lastLogin": "2025-11-21T21:30:11.004Z"
+  },
+  {
+    "email": "admin2@test.com",
+    "password": "$2b$10$4jDMepGKWYkN2ITtP2TOaur5uieqVr6NQ5xqW/M3mUnTrnZnO19vS",
+    "name": "Test Admin 2",
+    "createdAt": "2025-11-21T21:23:50.682Z",
+    "lastLogin": null
+  },
+  {
+    "email": "test@admin.com",
+    "password": "$2b$10$Wlf9wfRbX08L.PZD3t29w.ANO9bsqHZpOA6nHbYUUZrsLH13s0bKm",
+    "name": "Test Admin",
+    "createdAt": "2025-11-21T21:23:50.936Z",
+    "lastLogin": "2025-11-22T19:07:35.566Z"
+  }
+]

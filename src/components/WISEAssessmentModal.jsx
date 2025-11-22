@@ -123,7 +123,7 @@ const SCORING_OPTIONS = [
   { label: 'E - Christlike level', value: 1.0, description: 'Consistent, inspiring, and deeply rooted' }
 ];
 
-const WISEAssessmentModal = ({ isOpen, onClose }) => {
+const WISEAssessmentModal = ({ isOpen, onClose, onComplete }) => {
   const [currentDimension, setCurrentDimension] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -217,12 +217,13 @@ const WISEAssessmentModal = ({ isOpen, onClose }) => {
       impactDescription = 'Faith has little visible influence on daily work; this is the starting point of growth.';
     }
 
-    setResults({
+    const resultsData = {
       dimensionScores,
       FRIQ,
       impactLevel,
       impactDescription
-    });
+    };
+    setResults(resultsData);
     setShowResults(true);
   };
 
@@ -244,10 +245,18 @@ const WISEAssessmentModal = ({ isOpen, onClose }) => {
   };
 
   if (showResults && results) {
+    const handleResultsClose = () => {
+      // Call onComplete before closing if provided
+      if (onComplete) {
+        onComplete(results);
+      }
+      handleClose();
+    };
+    
     return (
       <FRIQResultsModal
         isOpen={isOpen}
-        onClose={handleClose}
+        onClose={handleResultsClose}
         results={results}
         onRestart={handleRestart}
       />

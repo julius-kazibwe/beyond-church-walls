@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../config/api';
 
-// Pastoral Voices
-const pastoralVoices = [
+// Default pastoral voices (fallback if API fails)
+const defaultPastoralVoices = [
   {
     id: 1,
     name: "Dr. Fred Wantante Setttuba-Male",
@@ -67,42 +67,92 @@ const initialFeedback = [
 const Endorsements = () => {
   const [pastoralIndex, setPastoralIndex] = useState(0);
   const [feedbackIndex, setFeedbackIndex] = useState(0);
-  const [feedback, setFeedback] = useState(initialFeedback);
+  const [feedback, setFeedback] = useState([]); // Start empty, will be populated from API
+  const [pastoralVoices, setPastoralVoices] = useState(defaultPastoralVoices); // Fallback until API loads
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [isPastoralHovered, setIsPastoralHovered] = useState(false);
+  const [isFeedbackHovered, setIsFeedbackHovered] = useState(false);
 
-  // Fetch feedback from API
+  // Fetch feedback and endorsements from API (only approved items)
   const fetchFeedback = async () => {
     try {
       setLoadingFeedback(true);
-      const response = await fetch(API_ENDPOINTS.FEEDBACK);
+      // Fetch approved feedback only
+      const feedbackResponse = await fetch(API_ENDPOINTS.FEEDBACK);
       
-      if (response.ok) {
-        const data = await response.json();
+      let apiFeedback = [];
+      
+      if (feedbackResponse.ok) {
+        const data = await feedbackResponse.json();
         if (data.success && data.feedback) {
-          // Combine initial feedback with API feedback
-          // Convert API feedback format to match component format
-          const apiFeedback = data.feedback.map(item => ({
-            id: item.id,
-            name: item.name,
-            title: item.title || '',
-            quote: item.quote
-          }));
-          
-          // Merge: initial feedback first, then API feedback
-          setFeedback([...initialFeedback, ...apiFeedback]);
+          // Only use approved feedback from API
+          apiFeedback = data.feedback
+            .filter(item => item.approved === true)
+            .map(item => {
+              // Ensure we get the message - check all possible field names
+              const messageText = item.message || item.quote || '';
+              
+              return {
+                id: item.id,
+                name: item.name || '',
+                title: item.title || '',
+                quote: messageText // Store as quote for display consistency
+              };
+            })
+            .filter(item => {
+              // Only include items with actual message content
+              return item.quote && typeof item.quote === 'string' && item.quote.trim().length > 0;
+            });
         }
       }
+      
+      // Set only API feedback (no hardcoded fallback)
+      setFeedback(apiFeedback);
     } catch (err) {
       console.error('Error fetching feedback:', err);
-      // Keep initial feedback if API fails
+      // Set empty array if API fails - admin controls what's shown
+      setFeedback([]);
     } finally {
       setLoadingFeedback(false);
     }
   };
 
-  // Fetch feedback on component mount
+  // Fetch endorsements (pastoral voices) from API (only approved items)
+  const fetchEndorsements = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.ENDORSEMENTS}?type=pastoral`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.endorsements && data.endorsements.length > 0) {
+          // Only use approved pastoral endorsements
+          const approvedPastoral = data.endorsements.filter(e => e.approved === true);
+          if (approvedPastoral.length > 0) {
+            setPastoralVoices(approvedPastoral);
+          } else {
+            // If no approved items, use empty array (admin controls visibility)
+            setPastoralVoices([]);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching endorsements:', err);
+      // Use default as fallback only if API completely fails
+      // But ideally admin should control what's shown
+    }
+  };
+
+  // Fetch data on component mount and periodically refresh to reflect admin changes
   useEffect(() => {
     fetchFeedback();
+    fetchEndorsements();
+    
+    // Refresh every 30 seconds to pick up admin changes
+    const refreshInterval = setInterval(() => {
+      fetchFeedback();
+      fetchEndorsements();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Listen for feedback submission events
@@ -119,12 +169,19 @@ const Endorsements = () => {
   }, []);
 
   useEffect(() => {
+    // Only set intervals if not hovered/touched
+    if (isPastoralHovered || isFeedbackHovered) {
+      return;
+    }
+
     const pastoralInterval = setInterval(() => {
+      if (!isPastoralHovered) {
       setPastoralIndex((prev) => (prev + 1) % pastoralVoices.length);
+      }
     }, 10000); // Rotate every 10 seconds for better readability
 
     const feedbackInterval = setInterval(() => {
-      if (feedback.length > 0) {
+      if (!isFeedbackHovered && feedback.length > 0) {
         setFeedbackIndex((prev) => (prev + 1) % feedback.length);
       }
     }, 10000);
@@ -133,7 +190,7 @@ const Endorsements = () => {
       clearInterval(pastoralInterval);
       clearInterval(feedbackInterval);
     };
-  }, [feedback.length]);
+  }, [feedback.length, pastoralVoices.length, isPastoralHovered, isFeedbackHovered]);
 
   return (
     <section id="endorsements" className="py-20 px-4 bg-navy text-white">
@@ -168,6 +225,10 @@ const Endorsements = () => {
                 exit={{ opacity: 0, x: -50 }}
                 transition={{ duration: 0.8, ease: "easeInOut" }}
                 className="bg-white/10 backdrop-blur-md rounded-xl p-8 md:p-12 border border-white/20 max-w-4xl mx-auto shadow-lg"
+                onMouseEnter={() => setIsPastoralHovered(true)}
+                onMouseLeave={() => setIsPastoralHovered(false)}
+                onTouchStart={() => setIsPastoralHovered(true)}
+                onTouchEnd={() => setIsPastoralHovered(false)}
               >
                 <div className="text-4xl md:text-5xl text-gold mb-4 font-serif">"</div>
                 <p className="text-lg md:text-xl leading-relaxed mb-6 italic text-white/95">
@@ -280,10 +341,14 @@ const Endorsements = () => {
                     exit={{ opacity: 0, x: -50 }}
                     transition={{ duration: 0.8, ease: "easeInOut" }}
                     className="bg-white/10 backdrop-blur-md rounded-xl p-8 md:p-12 border border-white/20 max-w-4xl mx-auto shadow-lg"
+                    onMouseEnter={() => setIsFeedbackHovered(true)}
+                    onMouseLeave={() => setIsFeedbackHovered(false)}
+                    onTouchStart={() => setIsFeedbackHovered(true)}
+                    onTouchEnd={() => setIsFeedbackHovered(false)}
                   >
                     <div className="text-4xl md:text-5xl text-gold mb-4 font-serif">"</div>
                     <p className="text-lg md:text-xl leading-relaxed mb-6 italic text-white/95">
-                      {feedback[feedbackIndex]?.quote}
+                      {feedback[feedbackIndex]?.quote || feedback[feedbackIndex]?.message || 'No message available'}
                     </p>
                     <div className="border-t border-white/30 pt-4">
                       <p className="font-bold text-xl text-white">{feedback[feedbackIndex]?.name}</p>
@@ -374,7 +439,7 @@ const Endorsements = () => {
                     >
                       <div className="text-2xl text-gold mb-3 font-serif">"</div>
                       <p className="text-base leading-relaxed mb-4 italic text-white/95">
-                        {item.quote}
+                        {item.quote || item.message || 'No message available'}
                       </p>
                       <div className="border-t border-white/30 pt-3">
                         <p className="font-bold text-white">{item.name}</p>

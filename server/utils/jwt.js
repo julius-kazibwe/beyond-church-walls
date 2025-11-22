@@ -38,12 +38,14 @@ const verifyPreviewToken = (token) => {
     
     // Verify it's a book preview token
     if (decoded.type !== 'book-preview') {
+      console.warn('Token type mismatch:', decoded.type, 'expected book-preview');
       return null;
     }
     
     return decoded;
   } catch (error) {
     // Token is invalid, expired, or malformed
+    console.warn('Token verification error:', error.name, error.message);
     return null;
   }
 };

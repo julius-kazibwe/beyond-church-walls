@@ -90,7 +90,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Content-Length'],
 };
 
 app.use(cors(corsOptions));
@@ -1457,14 +1458,26 @@ app.get('/api/book-preview-pdf', async (req, res) => {
     const token = extractTokenFromHeader(req) || req.query.token;
 
     if (!token) {
+      console.log('Book preview PDF: No token provided');
       return res.status(401).json({ error: 'Access token required' });
     }
 
     // Verify token
     const decoded = verifyPreviewToken(token);
     if (!decoded) {
+      console.log('Book preview PDF: Token verification failed', {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...',
+        hasQueryToken: !!req.query.token,
+        hasAuthHeader: !!req.headers.authorization
+      });
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
+    
+    console.log('Book preview PDF: Token verified successfully', {
+      email: decoded.email,
+      type: decoded.type
+    });
 
     // Read PDF file from public directory (relative to project root)
     // The server is in /server, so we need to go up one level to access /public

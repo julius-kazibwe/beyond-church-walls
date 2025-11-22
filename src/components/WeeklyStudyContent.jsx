@@ -192,9 +192,9 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
       >
         <h3 className="text-xl font-bold text-navy mb-4">Practical Application</h3>
         <p className="text-gray-700 mb-4">
-          {weekNumber === 1 
-            ? "Write a short 'Work as Worship' declaration for your current role."
-            : "Share one example of living out faith naturally in your workplace."
+          {weekData.practicalApplications && Array.isArray(weekData.practicalApplications) && weekData.practicalApplications.length > 0
+            ? weekData.practicalApplications[0].prompt || 'Apply this week\'s lessons to your daily work.'
+            : 'Apply this week\'s lessons to your daily work. Reflect on how you can integrate faith into your workplace.'
           }
         </p>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 min-h-[120px] bg-gray-50">

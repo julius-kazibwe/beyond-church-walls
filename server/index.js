@@ -55,7 +55,6 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
     if (!origin) {
-      console.log('CORS: Allowing request with no origin');
       return callback(null, true);
     }
     
@@ -66,7 +65,6 @@ const corsOptions = {
         origin.startsWith('http://127.0.0.1:') ||
         origin.startsWith('http://0.0.0.0:')
       ) {
-        console.log(`CORS: Allowing development origin: ${origin}`);
         return callback(null, true);
       }
     }
@@ -91,7 +89,6 @@ const corsOptions = {
     });
     
     if (isAllowed) {
-      console.log(`CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
       console.warn(`CORS blocked origin: ${origin}`);
@@ -249,7 +246,7 @@ const sendEmail = async (to, subject, html, text) => {
       html,
       text,
     };
-    
+
     // Set a timeout for the email send operation (15 seconds should be enough for most services)
     const emailPromise = transporter.sendMail(mailOptions);
     const timeoutPromise = new Promise((_, reject) => 
@@ -1359,16 +1356,40 @@ app.get('/api/admin/export/:type', authenticateAdmin, async (req, res) => {
 });
 
 // Helper function to check if a week is available (start date has passed)
+// Set ENABLE_WEEK_DATE_FILTERING=false in environment to disable date filtering
 const isWeekAvailable = (startDate) => {
-  if (!startDate) return true; // If no start date, make it available (backward compatibility)
+  // Check if date filtering is disabled via environment variable
+  if (process.env.ENABLE_WEEK_DATE_FILTERING === 'false') {
+    return true; // Show all weeks if filtering is disabled
+  }
+  
+  // If no start date or empty string, make it available (backward compatibility)
+  if (!startDate || startDate.trim() === '') {
+    return true;
+  }
   
   try {
+    // Parse date string (handles YYYY-MM-DD format)
     const start = new Date(startDate);
+    // Check if date is valid
+    if (isNaN(start.getTime())) {
+      console.warn('Invalid start date format:', startDate, '- making week available');
+      return true; // Invalid date, make available
+    }
+    
     const now = new Date();
-    // Set time to midnight for date-only comparison
-    start.setHours(0, 0, 0, 0);
-    now.setHours(0, 0, 0, 0);
-    return now >= start;
+    // Set time to midnight for date-only comparison (UTC to avoid timezone issues)
+    const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+    const nowUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    
+    // Week is available if start date is today or in the past
+    const isAvailable = nowUTC >= startUTC;
+    
+    if (!isAvailable) {
+      console.log(`Week with startDate ${startDate} is not yet available (starts ${startUTC.toISOString().split('T')[0]}, today is ${nowUTC.toISOString().split('T')[0]})`);
+    }
+    
+    return isAvailable;
   } catch (error) {
     console.error('Error parsing start date:', startDate, error);
     return true; // If date parsing fails, make it available (fail open)
@@ -1376,22 +1397,30 @@ const isWeekAvailable = (startDate) => {
 };
 
 // Weekly Content API (public - for frontend)
-// Only returns weeks that have started (startDate has passed)
+// Returns all weeks, but marks them as available/inactive based on start date
 app.get('/api/weekly-content', async (req, res) => {
   try {
     const allContent = await getAllWeeklyContent();
     
-    // Filter out weeks that haven't started yet
-    const availableContent = {};
+    // Add isAvailable flag to each week based on start date
+    const contentWithAvailability = {};
     for (const [weekNumber, weekData] of Object.entries(allContent)) {
-      if (isWeekAvailable(weekData.startDate)) {
-        availableContent[weekNumber] = weekData;
-      }
+      const isAvailable = isWeekAvailable(weekData.startDate);
+      contentWithAvailability[weekNumber] = {
+        ...weekData,
+        isAvailable: isAvailable,
+        // Include start date info for frontend display
+        startDate: weekData.startDate || '',
+        endDate: weekData.endDate || ''
+      };
     }
+    
+    const availableCount = Object.values(contentWithAvailability).filter(w => w.isAvailable).length;
+    console.log(`Returning ${Object.keys(contentWithAvailability).length} week(s), ${availableCount} available, ${Object.keys(contentWithAvailability).length - availableCount} inactive`);
     
     res.json({
       success: true,
-      content: availableContent
+      content: contentWithAvailability
     });
   } catch (error) {
     console.error('Error fetching weekly content:', error);
@@ -1407,17 +1436,15 @@ app.get('/api/weekly-content/:weekNumber', async (req, res) => {
       return res.status(404).json({ error: 'Week content not found' });
     }
     
-    // Check if week is available (start date has passed)
-    if (!isWeekAvailable(content.startDate)) {
-      return res.status(403).json({ 
-        error: 'This week is not yet available',
-        message: `This week will be available starting ${content.startDate || 'soon'}.`
-      });
-    }
+    // Add isAvailable flag but don't block access - let frontend handle UI
+    const isAvailable = isWeekAvailable(content.startDate);
     
     res.json({
       success: true,
-      content
+      content: {
+        ...content,
+        isAvailable: isAvailable
+      }
     });
   } catch (error) {
     console.error('Error fetching week content:', error);
@@ -1636,4 +1663,5 @@ app.listen(PORT, async () => {
     console.warn('   Please configure EMAIL_SERVICE in your .env file');
   }
 });
+
 

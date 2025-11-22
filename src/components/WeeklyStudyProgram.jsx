@@ -345,7 +345,8 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                 const isCompleted = completedWeeks.includes(weekNum);
                 const isCurrent = weekNum === currentWeek;
                 const isSelected = weekNum === selectedWeek;
-                const isLocked = !baselineCompleted || (weekNum > currentWeek && !isCompleted);
+                const isAvailable = weekInfo?.isAvailable !== false; // Default to true if not set
+                const isLocked = !baselineCompleted || (weekNum > currentWeek && !isCompleted) || !isAvailable;
 
                 return (
                   <button
@@ -360,12 +361,20 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                         ? 'bg-green-100 text-green-800 hover:bg-green-200'
                         : isCurrent
                         ? 'bg-gold text-navy hover:bg-gold/80'
+                        : !isAvailable
+                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                         : isLocked
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                       }
                     `}
-                    title={weekInfo && weekInfo.startDate ? `${formatDate(weekInfo.startDate)} - ${formatDate(weekInfo.endDate)}` : ''}
+                    title={
+                      !isAvailable && weekInfo?.startDate
+                        ? `Available starting ${formatDate(weekInfo.startDate)}`
+                        : weekInfo && weekInfo.startDate
+                        ? `${formatDate(weekInfo.startDate)} - ${formatDate(weekInfo.endDate)}`
+                        : ''
+                    }
                   >
                     Week {weekNum}
                     {weekInfo && weekInfo.startDate && (
@@ -378,7 +387,7 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                         ✓
                       </span>
                     )}
-                    {isCurrent && !isCompleted && (
+                    {isCurrent && !isCompleted && isAvailable && (
                       <span className="absolute -top-1 -right-1 bg-gold text-navy rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                         •
                       </span>
@@ -460,6 +469,29 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
 
                   {/* Week Content */}
                   {baselineCompleted ? (
+                    <>
+                      {/* Show message if week is not available yet */}
+                      {weekData && weekData.isAvailable === false && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-6"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl">⏸</div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                                This Week is Not Yet Available
+                              </h3>
+                              <p className="text-yellow-700">
+                                {weekData.startDate 
+                                  ? `This week will be available starting ${formatDate(weekData.startDate)}.`
+                                  : 'This week will be available soon.'}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -480,13 +512,25 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                   
                   const hasReflectionQuestions = reflectionQuestions.length > 0;
                   const allReflectionsAnswered = checkReflectionQuestionsAnswered();
-                  const canTakeAssessment = !hasReflectionQuestions || allReflectionsAnswered;
+                  const isWeekAvailable = weekData?.isAvailable !== false; // Default to true if not set
+                  const canTakeAssessment = isWeekAvailable && (!hasReflectionQuestions || allReflectionsAnswered);
                   
                   return (
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-navy mb-2">Week {selectedWeek} Assessment</h3>
-                        {!canTakeAssessment ? (
+                        {!isWeekAvailable ? (
+                          <div className="space-y-2">
+                            <p className="text-yellow-700 font-medium">
+                              ⏸ This week is not yet available. The assessment will be accessible once the week starts.
+                            </p>
+                            {weekData?.startDate && (
+                              <p className="text-gray-600 text-sm">
+                                Available starting: {formatDate(weekData.startDate)}
+                              </p>
+                            )}
+                          </div>
+                        ) : !canTakeAssessment ? (
                           <div className="space-y-2">
                             <p className="text-orange-600 font-medium">
                               ⚠️ Please complete all Reflection/Discussion Questions before taking the assessment.
@@ -537,6 +581,7 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
             </div>
           )}
         </motion.div>
+                    </>
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}

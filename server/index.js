@@ -232,7 +232,8 @@ const transporter = createTransporter();
 // Helper function to save submission to file
 // saveSubmission is now imported from submissionStorageMongo
 
-// Helper function to send email (non-blocking, handles errors gracefully)
+// Helper function to send email (with timeout and error handling)
+// Returns immediately if email service is not configured, otherwise waits for send (with timeout)
 const sendEmail = async (to, subject, html, text) => {
   if (!transporter) {
     console.log('Email transporter not configured. Email would be sent to:', to);
@@ -249,20 +250,31 @@ const sendEmail = async (to, subject, html, text) => {
       text,
     };
     
-    // Set a timeout for the email send operation
+    // Set a timeout for the email send operation (15 seconds should be enough for most services)
     const emailPromise = transporter.sendMail(mailOptions);
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Email send timeout')), 15000) // 15 second timeout
     );
     
     const info = await Promise.race([emailPromise, timeoutPromise]);
+    console.log(`Email sent successfully to ${to}: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     // Log error but don't throw - email failures shouldn't break the API
+    // The API will still return success to the user even if email fails
     console.error('Email error:', error.message || error);
     // Return success: false but don't throw - let the calling code decide
     return { success: false, message: error.message || 'Email send failed' };
   }
+};
+
+// Helper function to send email in background (fire-and-forget)
+// Use this when you want the API to respond immediately without waiting for email
+const sendEmailAsync = (to, subject, html, text) => {
+  // Don't await - let it run in background
+  sendEmail(to, subject, html, text).catch(err => {
+    console.error('Background email send failed:', err);
+  });
 };
 
 // API Routes

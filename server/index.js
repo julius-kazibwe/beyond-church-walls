@@ -118,9 +118,7 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false, // Don't validate - we've configured trust proxy correctly above
-  },
+  // Note: trust proxy is set to 1 above (trust first proxy only), which is secure for Render
   skip: (req) => {
     // Skip rate limiting for localhost in development
     if (process.env.NODE_ENV !== 'production') {
@@ -137,9 +135,7 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false, // Don't validate - we've configured trust proxy correctly above
-  },
+  // Note: trust proxy is set to 1 above (trust first proxy only), which is secure for Render
   skip: (req) => {
     // Skip rate limiting for localhost in development
     if (process.env.NODE_ENV !== 'production') {
@@ -180,6 +176,16 @@ fs.mkdir(dataDir, { recursive: true }).catch(console.error);
 
 // Email transporter configuration
 const createTransporter = () => {
+  // Common connection options for all transports (timeout settings)
+  const connectionOptions = {
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000, // 10 seconds
+    socketTimeout: 10000, // 10 seconds
+    pool: true, // Use connection pooling
+    maxConnections: 5,
+    maxMessages: 100,
+  };
+
   // Option 1: Gmail (using App Password)
   if (process.env.EMAIL_SERVICE === 'gmail') {
     return nodemailer.createTransport({
@@ -188,6 +194,7 @@ const createTransporter = () => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD, // Use App Password, not regular password
       },
+      ...connectionOptions,
     });
   }
   
@@ -195,12 +202,13 @@ const createTransporter = () => {
   if (process.env.EMAIL_SERVICE === 'smtp') {
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
+      port: parseInt(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
+      ...connectionOptions,
     });
   }
   
@@ -212,6 +220,7 @@ const createTransporter = () => {
         user: 'apikey',
         pass: process.env.SENDGRID_API_KEY,
       },
+      ...connectionOptions,
     });
   }
   
@@ -223,7 +232,7 @@ const transporter = createTransporter();
 // Helper function to save submission to file
 // saveSubmission is now imported from submissionStorageMongo
 
-// Helper function to send email
+// Helper function to send email (non-blocking, handles errors gracefully)
 const sendEmail = async (to, subject, html, text) => {
   if (!transporter) {
     console.log('Email transporter not configured. Email would be sent to:', to);
@@ -239,12 +248,20 @@ const sendEmail = async (to, subject, html, text) => {
       html,
       text,
     };
-
-    const info = await transporter.sendMail(mailOptions);
+    
+    // Set a timeout for the email send operation
+    const emailPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email send timeout')), 15000) // 15 second timeout
+    );
+    
+    const info = await Promise.race([emailPromise, timeoutPromise]);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Email error:', error);
-    return { success: false, error: error.message };
+    // Log error but don't throw - email failures shouldn't break the API
+    console.error('Email error:', error.message || error);
+    // Return success: false but don't throw - let the calling code decide
+    return { success: false, message: error.message || 'Email send failed' };
   }
 };
 

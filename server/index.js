@@ -21,8 +21,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Trust proxy (required for Render and other hosting platforms)
-// This allows Express to correctly identify client IPs behind a proxy
-app.set('trust proxy', true);
+// Set to 1 to trust only the first proxy (Render's load balancer)
+// This prevents IP spoofing while still getting correct client IPs
+app.set('trust proxy', 1);
 
 // Security: Sanitize HTML to prevent XSS
 const sanitizeHtml = (str) => {
@@ -53,7 +54,10 @@ app.use(helmet({
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
     // In development, allow all localhost origins
     if (process.env.NODE_ENV !== 'production') {
@@ -62,6 +66,7 @@ const corsOptions = {
         origin.startsWith('http://127.0.0.1:') ||
         origin.startsWith('http://0.0.0.0:')
       ) {
+        console.log(`CORS: Allowing development origin: ${origin}`);
         return callback(null, true);
       }
     }
@@ -86,6 +91,7 @@ const corsOptions = {
     });
     
     if (isAllowed) {
+      console.log(`CORS: Allowing origin: ${origin}`);
       callback(null, true);
     } else {
       console.warn(`CORS blocked origin: ${origin}`);
@@ -93,15 +99,19 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Type', 'Content-Length'],
+  maxAge: 86400, // Cache preflight requests for 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
 
 // Rate limiting (AFTER CORS) - only in production
-// Note: trust proxy is set above, so rate limiter will use X-Forwarded-For header
+// Note: trust proxy is set to 1 above, so rate limiter will use X-Forwarded-For header
+// but only trust the first proxy (Render's load balancer)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit in development
@@ -109,7 +119,7 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
-    trustProxy: true, // Explicitly tell rate limiter we trust the proxy
+    trustProxy: false, // Don't validate - we've configured trust proxy correctly above
   },
   skip: (req) => {
     // Skip rate limiting for localhost in development
@@ -128,7 +138,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
-    trustProxy: true, // Explicitly tell rate limiter we trust the proxy
+    trustProxy: false, // Don't validate - we've configured trust proxy correctly above
   },
   skip: (req) => {
     // Skip rate limiting for localhost in development
@@ -140,9 +150,25 @@ const authLimiter = rateLimit({
   },
 });
 
-app.use('/api/', limiter);
-app.use('/api/auth/', authLimiter);
-app.use('/api/admin/login', authLimiter);
+// Skip rate limiting for OPTIONS requests (CORS preflight)
+app.use('/api/', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next(); // Skip rate limiting for OPTIONS
+  }
+  return limiter(req, res, next);
+});
+app.use('/api/auth/', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next(); // Skip rate limiting for OPTIONS
+  }
+  return authLimiter(req, res, next);
+});
+app.use('/api/admin/login', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next(); // Skip rate limiting for OPTIONS
+  }
+  return authLimiter(req, res, next);
+});
 
 // Body parser with size limits
 app.use(bodyParser.json({ limit: '10mb' }));

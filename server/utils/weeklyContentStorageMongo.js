@@ -41,6 +41,7 @@ const getAllWeeklyContent = async () => {
         questions: week.questions || {},
         studyQuestions: Array.isArray(week.studyQuestions) ? week.studyQuestions : [],
         reflectionQuestions: Array.isArray(week.reflectionQuestions) ? week.reflectionQuestions : [],
+        practicalApplications: Array.isArray(week.practicalApplications) ? week.practicalApplications : [],
         completionMessage: completionMessage,
       };
     });
@@ -86,6 +87,7 @@ const getWeekContent = async (weekNumber) => {
       questions: week.questions || {},
       studyQuestions: Array.isArray(week.studyQuestions) ? week.studyQuestions : [],
       reflectionQuestions: Array.isArray(week.reflectionQuestions) ? week.reflectionQuestions : [],
+      practicalApplications: Array.isArray(week.practicalApplications) ? week.practicalApplications : [],
       completionMessage: completionMessage,
     };
   }
@@ -116,6 +118,9 @@ const saveWeeklyContent = async (weekNumber, weekData) => {
     const reflectionQuestions = Array.isArray(weekData.reflectionQuestions) 
       ? weekData.reflectionQuestions 
       : [];
+    const practicalApplications = Array.isArray(weekData.practicalApplications) 
+      ? weekData.practicalApplications 
+      : [];
 
     const week = await WeeklyContent.findOneAndUpdate(
       { weekNumber: weekNumber },
@@ -131,6 +136,7 @@ const saveWeeklyContent = async (weekNumber, weekData) => {
         questions: weekData.questions || {},
         studyQuestions: studyQuestions,
         reflectionQuestions: reflectionQuestions,
+        practicalApplications: practicalApplications,
         completionMessage: completionMessage,
         updatedAt: new Date(),
       },
@@ -158,6 +164,7 @@ const saveWeeklyContent = async (weekNumber, weekData) => {
       questions: week.questions || {},
       studyQuestions: Array.isArray(week.studyQuestions) ? week.studyQuestions : [],
       reflectionQuestions: Array.isArray(week.reflectionQuestions) ? week.reflectionQuestions : [],
+      practicalApplications: Array.isArray(week.practicalApplications) ? week.practicalApplications : [],
       completionMessage: responseCompletionMessage,
     };
   }

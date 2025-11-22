@@ -1172,6 +1172,10 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
           message: "You've completed this week's study! Keep up the great work as you continue to integrate faith into your daily work."
         };
       }
+      // Ensure practicalApplications exists
+      if (!content.practicalApplications) {
+        content.practicalApplications = [];
+      }
       setFormData(content);
       // Extract reference from existing keyScripture if it exists
       if (content.keyScripture && content.keyScripture.includes(' - ')) {
@@ -1196,6 +1200,7 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
         },
         studyQuestions: [],
         reflectionQuestions: [],
+        practicalApplications: [],
         completionMessage: {
           title: "Congratulations!",
           message: "You've completed this week's study! Keep up the great work as you continue to integrate faith into your daily work."
@@ -1336,6 +1341,27 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
     setFormData({
       ...formData,
       reflectionQuestions: formData.reflectionQuestions.filter((_, i) => i !== index)
+    });
+  };
+
+  const addPracticalApplication = () => {
+    const newId = `pa${editingWeek}-${Date.now()}`;
+    setFormData({
+      ...formData,
+      practicalApplications: [...(formData.practicalApplications || []), { id: newId, prompt: '', description: '' }]
+    });
+  };
+
+  const updatePracticalApplication = (index, field, value) => {
+    const updated = [...(formData.practicalApplications || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, practicalApplications: updated });
+  };
+
+  const deletePracticalApplication = (index) => {
+    setFormData({
+      ...formData,
+      practicalApplications: (formData.practicalApplications || []).filter((_, i) => i !== index)
     });
   };
 
@@ -1543,6 +1569,59 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
                   >
                     ✕
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Practical Applications */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-navy">Practical Applications</h3>
+              <button
+                onClick={addPracticalApplication}
+                className="px-3 py-1 bg-navy text-white rounded text-sm hover:bg-blue-900 transition-colors"
+              >
+                + Add Practical Application
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Add prompts or questions to guide users in applying the week's lessons to their daily work.
+            </p>
+            <div className="space-y-4">
+              {(formData.practicalApplications || []).map((pa, idx) => (
+                <div key={pa.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Prompt/Question</label>
+                        <input
+                          type="text"
+                          value={pa.prompt || ''}
+                          onChange={(e) => updatePracticalApplication(idx, 'prompt', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+                          placeholder="Enter practical application prompt or question..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea
+                          value={pa.description || ''}
+                          onChange={(e) => updatePracticalApplication(idx, 'description', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+                          placeholder="Optional instructions or additional context..."
+                          rows="2"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deletePracticalApplication(idx)}
+                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

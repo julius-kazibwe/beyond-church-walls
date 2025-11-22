@@ -1358,13 +1358,40 @@ app.get('/api/admin/export/:type', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Helper function to check if a week is available (start date has passed)
+const isWeekAvailable = (startDate) => {
+  if (!startDate) return true; // If no start date, make it available (backward compatibility)
+  
+  try {
+    const start = new Date(startDate);
+    const now = new Date();
+    // Set time to midnight for date-only comparison
+    start.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    return now >= start;
+  } catch (error) {
+    console.error('Error parsing start date:', startDate, error);
+    return true; // If date parsing fails, make it available (fail open)
+  }
+};
+
 // Weekly Content API (public - for frontend)
+// Only returns weeks that have started (startDate has passed)
 app.get('/api/weekly-content', async (req, res) => {
   try {
     const allContent = await getAllWeeklyContent();
+    
+    // Filter out weeks that haven't started yet
+    const availableContent = {};
+    for (const [weekNumber, weekData] of Object.entries(allContent)) {
+      if (isWeekAvailable(weekData.startDate)) {
+        availableContent[weekNumber] = weekData;
+      }
+    }
+    
     res.json({
       success: true,
-      content: allContent
+      content: availableContent
     });
   } catch (error) {
     console.error('Error fetching weekly content:', error);
@@ -1379,6 +1406,15 @@ app.get('/api/weekly-content/:weekNumber', async (req, res) => {
     if (!content) {
       return res.status(404).json({ error: 'Week content not found' });
     }
+    
+    // Check if week is available (start date has passed)
+    if (!isWeekAvailable(content.startDate)) {
+      return res.status(403).json({ 
+        error: 'This week is not yet available',
+        message: `This week will be available starting ${content.startDate || 'soon'}.`
+      });
+    }
+    
     res.json({
       success: true,
       content

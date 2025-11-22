@@ -60,6 +60,15 @@ const weeklyContentSchema = new mongoose.Schema({
     }],
     default: [],
   },
+  // Practical Application prompts/questions
+  practicalApplications: {
+    type: [{
+      id: String,
+      prompt: String,
+      description: String, // Optional description or instructions
+    }],
+    default: [],
+  },
   // Completion message shown after finishing the week
   completionMessage: {
     type: {

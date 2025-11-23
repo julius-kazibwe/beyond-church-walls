@@ -38,14 +38,5 @@
     "submittedAt": "2024-01-04T00:00:00.000Z",
     "approved": true,
     "approvedAt": "2024-01-04T00:00:00.000Z"
-  },
-  {
-    "id": "1763845706945",
-    "name": "julio",
-    "title": "Test title",
-    "quote": "my feedback",
-    "email": "kazjbwe@gmail.com",
-    "submittedAt": "2025-11-22T21:08:26.945Z",
-    "approved": false
   }
 ]

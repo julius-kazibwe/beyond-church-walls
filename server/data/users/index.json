@@ -1,22 +1,5 @@
 {
   "users": [
-    {
-      "id": "user_1763754584561_9x33mkjc7",
-      "email": "kazjbwe@gmail.com",
-      "name": "julius Kazibwe",
-      "createdAt": "2025-11-21T19:49:44.561Z"
-    },
-    {
-      "id": "user_1763774051955_wen7e730g",
-      "email": "kazibwej54@gmail.com",
-      "name": "julius Kazibwe",
-      "createdAt": "2025-11-22T01:14:11.955Z"
-    },
-    {
-      "id": "user_1763774746876_ylmz3amvz",
-      "email": "kjuliusht@gmail.com",
-      "name": "Vivian Namubiru",
-      "createdAt": "2025-11-22T01:25:46.876Z"
-    }
+    
   ]
 }

@@ -860,6 +860,11 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
         return {
           baselineCompleted: false,
           baselineFRIQ: null,
+          level2Completed: false,
+          level2FRIQ: null,
+          level3Completed: false,
+          level3FRIQ: null,
+          finalFRIQ: null,
           completedWeeks: [],
           assessments: {},
           currentWeek: 0,
@@ -871,6 +876,11 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
       return {
         baselineCompleted: progress.baselineCompleted || false,
         baselineFRIQ: typeof progress.baselineFRIQ === 'number' ? progress.baselineFRIQ : null,
+        level2Completed: progress.level2Completed || false,
+        level2FRIQ: typeof progress.level2FRIQ === 'number' ? progress.level2FRIQ : null,
+        level3Completed: progress.level3Completed || false,
+        level3FRIQ: typeof progress.level3FRIQ === 'number' ? progress.level3FRIQ : null,
+        finalFRIQ: typeof progress.finalFRIQ === 'number' ? progress.finalFRIQ : (typeof progress.level3FRIQ === 'number' ? progress.level3FRIQ : null),
         completedWeeks: Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [],
         assessments: progress.assessments && typeof progress.assessments === 'object' && !(progress.assessments instanceof Map)
           ? progress.assessments 
@@ -892,6 +902,11 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
     const mergedProgress = {
       baselineCompleted: cleanedServer.baselineCompleted || cleanedLocal.baselineCompleted || false,
       baselineFRIQ: cleanedServer.baselineFRIQ || cleanedLocal.baselineFRIQ || null,
+      level2Completed: cleanedServer.level2Completed || cleanedLocal.level2Completed || false,
+      level2FRIQ: cleanedServer.level2FRIQ || cleanedLocal.level2FRIQ || null,
+      level3Completed: cleanedServer.level3Completed || cleanedLocal.level3Completed || false,
+      level3FRIQ: cleanedServer.level3FRIQ || cleanedLocal.level3FRIQ || null,
+      finalFRIQ: cleanedServer.finalFRIQ || cleanedLocal.finalFRIQ || cleanedServer.level3FRIQ || cleanedLocal.level3FRIQ || null,
       completedWeeks: [...new Set([...cleanedServer.completedWeeks, ...cleanedLocal.completedWeeks])].sort((a, b) => a - b),
       assessments: { ...cleanedLocal.assessments, ...cleanedServer.assessments },
       currentWeek: Math.max(cleanedServer.currentWeek || 0, cleanedLocal.currentWeek || 0),

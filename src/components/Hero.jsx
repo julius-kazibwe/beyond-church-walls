@@ -37,12 +37,6 @@ const Hero = () => {
                 Join the Mission
               </a>
               <a
-                href="#wise-assessment"
-                className="px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-md border-2 border-gold text-gold font-bold text-sm sm:text-base md:text-lg rounded-lg hover:bg-gold hover:text-navy transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl whitespace-nowrap"
-              >
-                Start Assessment
-              </a>
-              <a
                 href="#pre-order"
                 className="px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-transparent border-2 border-gold text-gold font-bold text-sm sm:text-base md:text-lg rounded-lg hover:bg-gold hover:text-navy transition-all duration-300 transform hover:scale-105 shadow-lg whitespace-nowrap"
               >

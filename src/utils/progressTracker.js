@@ -246,6 +246,79 @@ export const getBaselineFRIQ = async () => {
   return progress.baselineFRIQ || null;
 };
 
+// Level 2 Assessment (after Week 5)
+export const saveLevel2Assessment = async (results) => {
+  const progress = await getProgress();
+  progress.level2Completed = true;
+  progress.level2FRIQ = results.FRIQ;
+  progress.assessments['level2'] = {
+    ...results,
+    completedAt: new Date().toISOString()
+  };
+  return await saveProgress(progress);
+};
+
+export const isLevel2Completed = async () => {
+  const progress = await getProgress();
+  return progress.level2Completed || false;
+};
+
+export const getLevel2FRIQ = async () => {
+  const progress = await getProgress();
+  return progress.level2FRIQ || null;
+};
+
+export const getLevel2Assessment = async () => {
+  const progress = await getProgress();
+  return progress.assessments['level2'] || null;
+};
+
+// Level 3 Assessment (Final FRIQ - after Week 10)
+export const saveLevel3Assessment = async (results) => {
+  const progress = await getProgress();
+  progress.level3Completed = true;
+  progress.level3FRIQ = results.FRIQ;
+  progress.finalFRIQ = results.FRIQ; // Also store as finalFRIQ for backward compatibility
+  progress.assessments['level3'] = {
+    ...results,
+    completedAt: new Date().toISOString()
+  };
+  return await saveProgress(progress);
+};
+
+export const isLevel3Completed = async () => {
+  const progress = await getProgress();
+  return progress.level3Completed || false;
+};
+
+export const getLevel3FRIQ = async () => {
+  const progress = await getProgress();
+  return progress.level3FRIQ || null;
+};
+
+export const getLevel3Assessment = async () => {
+  const progress = await getProgress();
+  return progress.assessments['level3'] || null;
+};
+
+// Check if user has completed enough weeks to take Level 2 (after week 5)
+export const canTakeLevel2 = async () => {
+  const progress = await getProgress();
+  if (!progress.baselineCompleted) return false;
+  // Check if week 5 is completed
+  const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
+  return completedWeeks.includes(5);
+};
+
+// Check if user has completed enough weeks to take Level 3 (after week 10)
+export const canTakeLevel3 = async () => {
+  const progress = await getProgress();
+  if (!progress.baselineCompleted) return false;
+  // Check if week 10 is completed
+  const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
+  return completedWeeks.includes(10);
+};
+
 export const resetProgress = () => {
   try {
     localStorage.removeItem(STORAGE_KEY);

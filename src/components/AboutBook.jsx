@@ -5,7 +5,7 @@ import SecurePDFViewer from './SecurePDFViewer';
 import WISEAssessmentModal from './WISEAssessmentModal';
 import { saveBaselineAssessment } from '../utils/progressTracker';
 
-const AboutBook = () => {
+const AboutBook = ({ onOpenWeeklyStudy }) => {
   const [email, setEmail] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -343,7 +343,7 @@ const AboutBook = () => {
                   Assess your faith integration at work with the WISE Framework and discover your Faith Relevance Index Quotient (FRIQ)
                 </p>
                 <button
-                  onClick={() => setShowWISEModal(true)}
+                  onClick={() => onOpenWeeklyStudy && onOpenWeeklyStudy()}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-semibold rounded-lg hover:bg-blue-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +405,7 @@ const AboutBook = () => {
         </motion.div>
       </div>
 
-      {/* WISE Assessment Modal */}
+      {/* WISE Assessment Modal - Level 1 (Baseline) */}
       <WISEAssessmentModal
         isOpen={showWISEModal}
         onClose={() => setShowWISEModal(false)}
@@ -418,6 +418,7 @@ const AboutBook = () => {
             console.error('Error saving WISE assessment results:', error);
           }
         }}
+        level={1}
       />
     </section>
   );

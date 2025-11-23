@@ -1192,12 +1192,6 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
         learningObjective: '',
         startDate: '',
         endDate: '',
-        questions: {
-          Worship: [],
-          Integrity: [],
-          Service: [],
-          Excellence: []
-        },
         studyQuestions: [],
         reflectionQuestions: [],
         practicalApplications: [],
@@ -1261,45 +1255,6 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
     const weekNumbers = Object.keys(weeklyContent).map(Number).sort((a, b) => a - b);
     const nextWeek = weekNumbers.length > 0 ? Math.max(...weekNumbers) + 1 : 1;
     onSelectWeek(nextWeek);
-  };
-
-  const addQuestion = (dimension) => {
-    const newId = `${dimension[0].toLowerCase()}${editingWeek}-${Date.now()}`;
-    const newQuestion = {
-      id: newId,
-      question: '',
-      dimension: dimension
-    };
-    setFormData({
-      ...formData,
-      questions: {
-        ...formData.questions,
-        [dimension]: [...(formData.questions[dimension] || []), newQuestion]
-      }
-    });
-  };
-
-  const updateQuestion = (dimension, index, field, value) => {
-    const updated = [...formData.questions[dimension]];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({
-      ...formData,
-      questions: {
-        ...formData.questions,
-        [dimension]: updated
-      }
-    });
-  };
-
-  const deleteQuestion = (dimension, index) => {
-    const updated = formData.questions[dimension].filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      questions: {
-        ...formData.questions,
-        [dimension]: updated
-      }
-    });
   };
 
   const addStudyQuestion = () => {
@@ -1473,41 +1428,6 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
             </div>
           </div>
 
-          {/* WISE Assessment Questions */}
-          {['Worship', 'Integrity', 'Service', 'Excellence'].map((dimension) => (
-            <div key={dimension} className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-navy">{dimension} Questions</h3>
-                <button
-                  onClick={() => addQuestion(dimension)}
-                  className="px-3 py-1 bg-navy text-white rounded text-sm hover:bg-blue-900 transition-colors"
-                >
-                  + Add Question
-                </button>
-              </div>
-              <div className="space-y-3">
-                {(formData.questions[dimension] || []).map((q, idx) => (
-                  <div key={q.id} className="flex gap-2 items-start">
-                    <input
-                      type="text"
-                      value={q.question}
-                      onChange={(e) => updateQuestion(dimension, idx, 'question', e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
-                      placeholder="Enter question..."
-                    />
-                    <button
-                      onClick={() => deleteQuestion(dimension, idx)}
-                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                      title="Delete"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
           {/* Study Questions */}
           <div className="border-t pt-6">
             <div className="flex items-center justify-between mb-4">
@@ -1631,7 +1551,7 @@ const WeeklyContentManager = ({ weeklyContent, selectedWeek, onSelectWeek, onSav
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-navy mb-4">Completion Message</h3>
             <p className="text-sm text-gray-600 mb-4">
-              This message will be shown after a user completes this week's assessment.
+              This message will be shown after a user completes this week's study content.
             </p>
             <div className="space-y-4">
               <div>

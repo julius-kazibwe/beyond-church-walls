@@ -33,6 +33,26 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: null,
     },
+    level2Completed: {
+      type: Boolean,
+      default: false,
+    },
+    level2FRIQ: {
+      type: Number,
+      default: null,
+    },
+    level3Completed: {
+      type: Boolean,
+      default: false,
+    },
+    level3FRIQ: {
+      type: Number,
+      default: null,
+    },
+    finalFRIQ: {
+      type: Number,
+      default: null,
+    },
     completedWeeks: {
       type: [Number],
       default: [],

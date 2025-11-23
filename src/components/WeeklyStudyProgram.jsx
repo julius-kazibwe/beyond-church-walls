@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WeeklyStudyContent from './WeeklyStudyContent';
-import WeeklyAssessment from './WeeklyAssessment';
 import WISEAssessmentModal from './WISEAssessmentModal';
 import { 
   getWeekData, 
@@ -10,20 +9,33 @@ import {
 import { 
   getProgress, 
   getCurrentWeek, 
-  isWeekCompleted,
-  getAssessmentResult,
   isBaselineCompleted,
   getBaselineFRIQ,
-  saveBaselineAssessment
+  saveBaselineAssessment,
+  isLevel2Completed,
+  getLevel2FRIQ,
+  saveLevel2Assessment,
+  canTakeLevel2,
+  isLevel3Completed,
+  getLevel3FRIQ,
+  saveLevel3Assessment,
+  canTakeLevel3
 } from '../utils/progressTracker';
 
 const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   const [selectedWeek, setSelectedWeek] = useState(1);
-  const [showAssessment, setShowAssessment] = useState(false);
   const [showBaselineAssessment, setShowBaselineAssessment] = useState(false);
+  const [showLevel2Assessment, setShowLevel2Assessment] = useState(false);
+  const [showLevel3Assessment, setShowLevel3Assessment] = useState(false);
   const [progress, setProgress] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(0);
   const [baselineCompleted, setBaselineCompleted] = useState(false);
+  const [level2Completed, setLevel2Completed] = useState(false);
+  const [level3Completed, setLevel3Completed] = useState(false);
+  const [level2FRIQ, setLevel2FRIQ] = useState(null);
+  const [level3FRIQ, setLevel3FRIQ] = useState(null);
+  const [canTakeLevel2Assessment, setCanTakeLevel2Assessment] = useState(false);
+  const [canTakeLevel3Assessment, setCanTakeLevel3Assessment] = useState(false);
   const [completedWeeks, setCompletedWeeks] = useState([]);
   const [totalWeeks, setTotalWeeks] = useState(0);
   const [weekData, setWeekData] = useState(null);
@@ -42,6 +54,20 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
       setCurrentWeek(week);
       const baseline = await isBaselineCompleted();
       setBaselineCompleted(baseline);
+      
+      // Load Level 2 and Level 3 status
+      const level2 = await isLevel2Completed();
+      const level3 = await isLevel3Completed();
+      const level2FRIQValue = await getLevel2FRIQ();
+      const level3FRIQValue = await getLevel3FRIQ();
+      const canLevel2 = await canTakeLevel2();
+      const canLevel3 = await canTakeLevel3();
+      setLevel2Completed(level2);
+      setLevel3Completed(level3);
+      setLevel2FRIQ(level2FRIQValue);
+      setLevel3FRIQ(level3FRIQValue);
+      setCanTakeLevel2Assessment(canLevel2);
+      setCanTakeLevel3Assessment(canLevel3);
       
       // Load all weekly content
       const { fetchWeeklyContent } = await import('../utils/weeklyContent');
@@ -86,8 +112,6 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     };
     loadStudyQuestions();
   }, [selectedWeek, allWeeksData]);
-  const [weekCompleted, setWeekCompleted] = useState(false);
-  const [weekResult, setWeekResult] = useState(null);
   const [baselineFRIQ, setBaselineFRIQ] = useState(null);
   const [reflectionAnswers, setReflectionAnswers] = useState({});
   const [studyQuestionsData, setStudyQuestionsData] = useState(null);
@@ -96,11 +120,7 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   useEffect(() => {
     const loadWeekData = async () => {
       if (selectedWeek) {
-        const completed = await isWeekCompleted(selectedWeek);
-        const result = await getAssessmentResult(selectedWeek);
         const baseline = await getBaselineFRIQ();
-        setWeekCompleted(completed);
-        setWeekResult(result);
         setBaselineFRIQ(baseline);
       }
     };
@@ -123,6 +143,34 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     setBaselineCompleted(true);
     setSelectedWeek(1); // Start with Week 1 after baseline
     setShowBaselineAssessment(false);
+  };
+
+  const handleStartLevel2Assessment = () => {
+    setShowLevel2Assessment(true);
+  };
+
+  const handleLevel2Complete = async (results) => {
+    await saveLevel2Assessment(results);
+    const updatedProgress = await getProgress();
+    setProgress(updatedProgress);
+    const level2FRIQValue = await getLevel2FRIQ();
+    setLevel2FRIQ(level2FRIQValue);
+    setLevel2Completed(true);
+    setShowLevel2Assessment(false);
+  };
+
+  const handleStartLevel3Assessment = () => {
+    setShowLevel3Assessment(true);
+  };
+
+  const handleLevel3Complete = async (results) => {
+    await saveLevel3Assessment(results);
+    const updatedProgress = await getProgress();
+    setProgress(updatedProgress);
+    const level3FRIQValue = await getLevel3FRIQ();
+    setLevel3FRIQ(level3FRIQValue);
+    setLevel3Completed(true);
+    setShowLevel3Assessment(false);
   };
 
   // Load reflection answers when week changes
@@ -164,65 +212,10 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     };
   }, [selectedWeek]);
 
-  // Check if all reflection questions are answered for the current week
-  const checkReflectionQuestionsAnswered = () => {
-    if (!weekData) return true; // If no week data, allow (shouldn't happen)
-    
-    // Get reflection questions from weekData or studyQuestionsData
-    let reflectionQuestions = weekData.reflectionQuestions || [];
-    
-    // Fallback: try to get from studyQuestionsData (loaded separately)
-    if (reflectionQuestions.length === 0 && studyQuestionsData) {
-      reflectionQuestions = studyQuestionsData.reflectionQuestions || [];
-    }
-    
-    if (reflectionQuestions.length === 0) {
-      return true; // No reflection questions, allow assessment
-    }
-    
-    // Check if all questions have non-empty answers
-    const allAnswered = reflectionQuestions.every(q => {
-      const questionId = q.id || `reflection-${reflectionQuestions.indexOf(q)}`;
-      const answer = reflectionAnswers[questionId];
-      return answer && typeof answer === 'string' && answer.trim().length > 0;
-    });
-    
-    return allAnswered;
-  };
-
-  const handleStartAssessment = () => {
-    // Check if reflection questions need to be answered
-    if (!checkReflectionQuestionsAnswered()) {
-      // Scroll to reflection questions section
-      const reflectionSection = document.querySelector('[data-reflection-section]');
-      if (reflectionSection) {
-        reflectionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      return; // Don't open assessment
-    }
-    
-    setShowAssessment(true);
-  };
-
-  const handleAssessmentComplete = async (weekNumber, results) => {
-    // Refresh progress
-    const updatedProgress = await getProgress();
-    setProgress(updatedProgress);
-    setCompletedWeeks(updatedProgress.completedWeeks || []);
-    const week = await getCurrentWeek();
-    setCurrentWeek(week);
-    // Update week-specific data
-    const completed = await isWeekCompleted(selectedWeek);
-    const result = await getAssessmentResult(selectedWeek);
-    setWeekCompleted(completed);
-    setWeekResult(result);
-    setShowAssessment(false);
-  };
 
   const handleWeekSelect = (weekNum) => {
     if (!baselineCompleted) return; // Can't select weeks without baseline
     setSelectedWeek(weekNum);
-    setShowAssessment(false);
   };
 
   const formatDate = (dateString) => {
@@ -283,23 +276,18 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                       animate={{ opacity: 1, y: 0 }}
                       className="mb-8"
                     >
-                      <div className="bg-gradient-to-r from-navy to-blue-900 text-white rounded-xl shadow-lg p-8 border border-gray-200">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 w-12 h-12 bg-gold text-navy rounded-full flex items-center justify-center font-bold text-xl">
-                            1
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-2xl font-bold mb-2">Before Week 1: Baseline Assessment</h3>
-                            <p className="text-white/90 mb-4">
-                              Take the Level 1 Assessment Test to establish your baseline FRIQ score. This will help you track your growth throughout the study program.
-                            </p>
-                            <button
-                              onClick={handleStartBaselineAssessment}
-                              className="px-6 py-3 bg-gold text-navy rounded-lg font-semibold hover:bg-yellow-400 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                            >
-                              Start Baseline
-                            </button>
-                          </div>
+                      <div className="bg-navy text-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold mb-2">Before Week 1: Baseline Assessment</h3>
+                          <p className="text-white/90 mb-4">
+                            Take the Level 1 Assessment Test to establish your baseline FRIQ score. This will help you track your growth throughout the study program.
+                          </p>
+                          <button
+                            onClick={handleStartBaselineAssessment}
+                            className="px-6 py-3 bg-white text-navy rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          >
+                            Start Baseline
+                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -315,12 +303,123 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                       <div className="bg-green-50 border-2 border-green-200 rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="text-lg font-bold text-green-800 mb-1">✓ Baseline Assessment Completed</h3>
+                            <h3 className="text-lg font-bold text-green-800 mb-1">✓ Level 1: Baseline Assessment Completed</h3>
                             <p className="text-green-700">Your baseline FRIQ score: <strong className="text-xl">{(baselineFRIQ * 100).toFixed(1)}</strong></p>
                           </div>
                           <button
                             onClick={handleStartBaselineAssessment}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                          >
+                            Retake
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Level 2 Assessment - After Week 5 */}
+                  {baselineCompleted && canTakeLevel2Assessment && !level2Completed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-8"
+                    >
+                      <div className="bg-blue-600 text-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold mb-2">After Week 5: Level 2 Assessment</h3>
+                          <p className="text-white/90 mb-4">
+                            Take the Level 2 Assessment to measure your progress. This assessment uses more advanced questions to evaluate your growth in the WISE Framework.
+                          </p>
+                          <button
+                            onClick={handleStartLevel2Assessment}
+                            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          >
+                            Start Level 2 Assessment
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Level 2 Results Display */}
+                  {level2Completed && level2FRIQ !== null && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-8"
+                    >
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl shadow-lg p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-blue-800 mb-1">✓ Level 2: Mid-Program Assessment Completed</h3>
+                            <p className="text-blue-700">Your Level 2 FRIQ score: <strong className="text-xl">{(level2FRIQ * 100).toFixed(1)}</strong></p>
+                            {baselineFRIQ !== null && (
+                              <p className="text-blue-600 text-sm mt-1">
+                                Change from baseline: {((level2FRIQ - baselineFRIQ) * 100).toFixed(1)} points
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={handleStartLevel2Assessment}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+                          >
+                            Retake
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Level 3 Assessment - After Week 10 */}
+                  {baselineCompleted && canTakeLevel3Assessment && !level3Completed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-8"
+                    >
+                      <div className="bg-blue-700 text-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold mb-2">After Week 10: Level 3 Final FRIQ Assessment</h3>
+                          <p className="text-white/90 mb-4">
+                            Take the final Level 3 Assessment to measure your complete transformation. This assessment uses the most advanced questions to evaluate your Kingdom impact and final FRIQ score.
+                          </p>
+                          <button
+                            onClick={handleStartLevel3Assessment}
+                            className="px-6 py-3 bg-white text-blue-700 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          >
+                            Start Final FRIQ Assessment
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Level 3 Results Display */}
+                  {level3Completed && level3FRIQ !== null && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-8"
+                    >
+                      <div className="bg-blue-50 border-2 border-blue-300 rounded-xl shadow-lg p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-blue-800 mb-1">✓ Level 3: Final FRIQ Assessment Completed</h3>
+                            <p className="text-blue-700">Your Final FRIQ score: <strong className="text-xl">{(level3FRIQ * 100).toFixed(1)}</strong></p>
+                            {baselineFRIQ !== null && (
+                              <p className="text-blue-600 text-sm mt-1">
+                                Total growth from baseline: {((level3FRIQ - baselineFRIQ) * 100).toFixed(1)} points
+                              </p>
+                            )}
+                            {level2FRIQ !== null && (
+                              <p className="text-blue-600 text-sm">
+                                Change from Level 2: {((level3FRIQ - level2FRIQ) * 100).toFixed(1)} points
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={handleStartLevel3Assessment}
+                            className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm font-semibold"
                           >
                             Retake
                           </button>
@@ -422,50 +521,11 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                     />
                   </div>
                 </div>
-                {weekResult && (
-                  <div className="text-center px-4">
-                    <div className="text-2xl font-bold text-navy">
-                      {((weekResult.FRIQ || 0) * 100).toFixed(0)}
-                    </div>
-                    <div className="text-xs text-gray-600">Week {selectedWeek} FRIQ</div>
-                  </div>
-                )}
               </div>
             </div>
           </motion.div>
         )}
 
-                  {/* Completion Message - Show after each week is completed */}
-                  {baselineCompleted && progress && weekCompleted && weekData?.completionMessage && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-gradient-to-br from-gold via-yellow-400 to-gold rounded-xl shadow-2xl p-8 md:p-12 border-4 border-navy">
-                        <div className="text-center">
-                          <div className="mb-6">
-                            <div className="inline-block bg-navy text-gold rounded-full w-20 h-20 flex items-center justify-center text-4xl font-bold mb-4 shadow-lg">
-                              ✓
-                            </div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-navy mb-4">
-                              {weekData.completionMessage.title || "Congratulations!"}
-                            </h2>
-                            <h3 className="text-2xl md:text-3xl font-bold text-navy mb-6">
-                              Week {selectedWeek} Completed!
-                            </h3>
-                          </div>
-                          
-                          <div className="bg-white/90 rounded-lg p-6 md:p-8 mb-6 text-left max-w-3xl mx-auto">
-                            <p className="text-lg md:text-xl text-gray-800 leading-relaxed">
-                              {weekData.completionMessage.message || "You've completed this week's study! Keep up the great work as you continue to integrate faith into your daily work."}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
 
                   {/* Week Content */}
                   {baselineCompleted ? (
@@ -500,78 +560,6 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
           {weekData ? (
             <div className="space-y-6">
               <WeeklyStudyContent weekNumber={selectedWeek} weekData={weekData} />
-              
-              {/* Assessment Button */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-                {(() => {
-                  // Get reflection questions from weekData or studyQuestionsData
-                  let reflectionQuestions = weekData?.reflectionQuestions || [];
-                  if (reflectionQuestions.length === 0 && studyQuestionsData) {
-                    reflectionQuestions = studyQuestionsData.reflectionQuestions || [];
-                  }
-                  
-                  const hasReflectionQuestions = reflectionQuestions.length > 0;
-                  const allReflectionsAnswered = checkReflectionQuestionsAnswered();
-                  const isWeekAvailable = weekData?.isAvailable !== false; // Default to true if not set
-                  const canTakeAssessment = isWeekAvailable && (!hasReflectionQuestions || allReflectionsAnswered);
-                  
-                  return (
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-navy mb-2">Week {selectedWeek} Assessment</h3>
-                        {!isWeekAvailable ? (
-                          <div className="space-y-2">
-                            <p className="text-yellow-700 font-medium">
-                              ⏸ This week is not yet available. The assessment will be accessible once the week starts.
-                            </p>
-                            {weekData?.startDate && (
-                              <p className="text-gray-600 text-sm">
-                                Available starting: {formatDate(weekData.startDate)}
-                              </p>
-                            )}
-                          </div>
-                        ) : !canTakeAssessment ? (
-                          <div className="space-y-2">
-                            <p className="text-orange-600 font-medium">
-                              ⚠️ Please complete all Reflection/Discussion Questions before taking the assessment.
-                            </p>
-                            <p className="text-gray-600 text-sm">
-                              Scroll up to find the Reflection/Discussion Questions section and provide answers to all questions.
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-gray-600">
-                              {weekCompleted 
-                                ? "You've completed this week's assessment. You can retake it to see your progress."
-                                : "Complete the WISE assessment to measure your growth in this week's focus areas."
-                              }
-                            </p>
-                            {weekResult && (
-                              <div className="mt-2 text-sm text-gray-600">
-                                Last completed: {new Date(weekResult.completedAt).toLocaleDateString()}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleStartAssessment}
-                        disabled={!canTakeAssessment}
-                        className={`
-                          px-8 py-4 rounded-lg font-semibold transition-all duration-200 text-lg shadow-lg
-                          ${canTakeAssessment
-                            ? 'bg-navy text-white hover:bg-blue-900 hover:shadow-xl transform hover:scale-105 cursor-pointer'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                          }
-                        `}
-                      >
-                        {weekCompleted ? 'Retake' : 'Start Assessment'}
-                      </button>
-                    </div>
-                  );
-                })()}
-              </div>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-lg p-12 border border-gray-200 text-center">
@@ -604,23 +592,30 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Baseline Assessment Modal */}
+              {/* Baseline Assessment Modal (Level 1) */}
               <WISEAssessmentModal
                 isOpen={showBaselineAssessment}
                 onClose={() => setShowBaselineAssessment(false)}
                 onComplete={handleBaselineComplete}
+                level={1}
               />
 
-              {/* Weekly Assessment Modal */}
-              {weekData && baselineCompleted && (
-                <WeeklyAssessment
-                  isOpen={showAssessment}
-                  onClose={() => setShowAssessment(false)}
-                  weekNumber={selectedWeek}
-                  weekData={weekData}
-                  onComplete={handleAssessmentComplete}
-                />
-              )}
+              {/* Level 2 Assessment Modal */}
+              <WISEAssessmentModal
+                isOpen={showLevel2Assessment}
+                onClose={() => setShowLevel2Assessment(false)}
+                onComplete={handleLevel2Complete}
+                level={2}
+              />
+
+              {/* Level 3 Assessment Modal (Final FRIQ) */}
+              <WISEAssessmentModal
+                isOpen={showLevel3Assessment}
+                onClose={() => setShowLevel3Assessment(false)}
+                onComplete={handleLevel3Complete}
+                level={3}
+              />
+
             </motion.div>
           </motion.div>
         </>

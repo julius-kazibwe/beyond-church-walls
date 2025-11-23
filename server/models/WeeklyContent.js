@@ -34,16 +34,6 @@ const weeklyContentSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  // Assessment questions organized by dimension (Worship, Integrity, Service, Excellence)
-  questions: {
-    type: Map,
-    of: [{
-      id: String,
-      question: String,
-      dimension: String,
-    }],
-    default: {},
-  },
   // Study questions for reflection
   studyQuestions: {
     type: [{

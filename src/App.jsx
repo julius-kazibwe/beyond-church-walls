@@ -40,7 +40,7 @@ function App() {
         onOpenDashboard={() => setShowDashboard(true)}
       />
       <Hero />
-      <AboutBook />
+      <AboutBook onOpenWeeklyStudy={() => setShowWeeklyStudy(true)} />
       <AboutAuthor />
       <Endorsements />
       <JoinMission />

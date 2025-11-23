@@ -270,7 +270,6 @@ async function migrateWeeklyContent() {
           keyScripture: weekData.keyScripture,
           keyScriptureText: weekData.keyScriptureText || '',
           completionMessage: completionMessage,
-          questions: weekData.questions || {},
         });
         migrated++;
       } catch (error) {

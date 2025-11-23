@@ -128,29 +128,37 @@ const cleanProgressData = (progress) => {
     return {
       baselineCompleted: false,
       baselineFRIQ: null,
+      level2Completed: false,
+      level2FRIQ: null,
+      level3Completed: false,
+      level3FRIQ: null,
+      finalFRIQ: null,
       completedWeeks: [],
       currentWeek: 0,
-      weeklyAssessments: {},
       assessments: {},
       reflections: {},
       practicalApplications: {},
     };
   }
 
-  // Clean assessments - could be in weeklyAssessments or assessments
+  // Clean assessments - check both weeklyAssessments (legacy) and assessments
   let assessments = {};
-  if (progress.weeklyAssessments) {
-    assessments = mapToObject(progress.weeklyAssessments);
-  } else if (progress.assessments) {
+  if (progress.assessments) {
     assessments = mapToObject(progress.assessments);
+  } else if (progress.weeklyAssessments) {
+    assessments = mapToObject(progress.weeklyAssessments);
   }
 
   return {
     baselineCompleted: progress.baselineCompleted !== undefined ? progress.baselineCompleted : (progress.baselineFRIQ !== null && progress.baselineFRIQ !== undefined),
     baselineFRIQ: typeof progress.baselineFRIQ === 'number' ? progress.baselineFRIQ : null,
+    level2Completed: progress.level2Completed !== undefined ? progress.level2Completed : false,
+    level2FRIQ: typeof progress.level2FRIQ === 'number' ? progress.level2FRIQ : null,
+    level3Completed: progress.level3Completed !== undefined ? progress.level3Completed : false,
+    level3FRIQ: typeof progress.level3FRIQ === 'number' ? progress.level3FRIQ : null,
+    finalFRIQ: typeof progress.finalFRIQ === 'number' ? progress.finalFRIQ : (typeof progress.level3FRIQ === 'number' ? progress.level3FRIQ : null),
     completedWeeks: Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [],
     currentWeek: typeof progress.currentWeek === 'number' ? progress.currentWeek : 0,
-    weeklyAssessments: assessments,
     assessments: assessments,
     reflections: mapToObject(progress.reflections || {}),
     practicalApplications: mapToObject(progress.practicalApplications || {}),
@@ -168,16 +176,21 @@ const saveUserProgress = async (userId, progress) => {
     // Set progress fields - Mongoose will convert plain objects to Maps automatically
     user.progress.baselineCompleted = cleanedProgress.baselineCompleted;
     user.progress.baselineFRIQ = cleanedProgress.baselineFRIQ;
+    user.progress.level2Completed = cleanedProgress.level2Completed;
+    user.progress.level2FRIQ = cleanedProgress.level2FRIQ;
+    user.progress.level3Completed = cleanedProgress.level3Completed;
+    user.progress.level3FRIQ = cleanedProgress.level3FRIQ;
+    user.progress.finalFRIQ = cleanedProgress.finalFRIQ;
     user.progress.completedWeeks = cleanedProgress.completedWeeks;
     user.progress.currentWeek = cleanedProgress.currentWeek;
     
     // Clear and set Maps from plain objects
-    user.progress.weeklyAssessments = new Map();
     user.progress.assessments = new Map();
     for (const [key, value] of Object.entries(cleanedProgress.assessments || {})) {
-      user.progress.weeklyAssessments.set(key, value);
       user.progress.assessments.set(key, value);
     }
+    // Keep weeklyAssessments in sync for backward compatibility
+    user.progress.weeklyAssessments = user.progress.assessments;
     
     user.progress.reflections = new Map();
     for (const [key, value] of Object.entries(cleanedProgress.reflections || {})) {
@@ -195,6 +208,11 @@ const saveUserProgress = async (userId, progress) => {
     return {
       baselineCompleted: cleanedProgress.baselineCompleted,
       baselineFRIQ: cleanedProgress.baselineFRIQ,
+      level2Completed: cleanedProgress.level2Completed,
+      level2FRIQ: cleanedProgress.level2FRIQ,
+      level3Completed: cleanedProgress.level3Completed,
+      level3FRIQ: cleanedProgress.level3FRIQ,
+      finalFRIQ: cleanedProgress.finalFRIQ,
       completedWeeks: cleanedProgress.completedWeeks,
       currentWeek: cleanedProgress.currentWeek,
       assessments: cleanedProgress.assessments,
@@ -213,17 +231,22 @@ const getUserProgress = async (userId) => {
     // Convert Maps to plain objects, handling both Map and object types
     const progress = user.progress || {};
     
-    // Handle assessments - could be in weeklyAssessments or assessments
+    // Handle assessments - check assessments first, then weeklyAssessments for backward compatibility
     let assessments = {};
-    if (progress.weeklyAssessments) {
+    if (progress.assessments) {
+      assessments = typeof progress.assessments === 'object' ? mapToObject(progress.assessments) : {};
+    } else if (progress.weeklyAssessments) {
       assessments = mapToObject(progress.weeklyAssessments);
-    } else if (progress.assessments) {
-      assessments = typeof progress.assessments === 'object' ? progress.assessments : {};
     }
     
     return {
       baselineCompleted: progress.baselineCompleted !== undefined ? progress.baselineCompleted : (progress.baselineFRIQ !== null && progress.baselineFRIQ !== undefined),
       baselineFRIQ: progress.baselineFRIQ || null,
+      level2Completed: progress.level2Completed || false,
+      level2FRIQ: progress.level2FRIQ || null,
+      level3Completed: progress.level3Completed || false,
+      level3FRIQ: progress.level3FRIQ || null,
+      finalFRIQ: progress.finalFRIQ || progress.level3FRIQ || null,
       completedWeeks: progress.completedWeeks || [],
       assessments: assessments,
       currentWeek: progress.currentWeek || 0,
@@ -248,12 +271,12 @@ const getAllUsers = async () => {
       // Convert progress Maps to plain objects
       const progress = user.progress || {};
       
-      // Handle assessments
+      // Handle assessments - check assessments first, then weeklyAssessments for backward compatibility
       let assessments = {};
-      if (progress.weeklyAssessments) {
-        assessments = mapToObject(progress.weeklyAssessments);
-      } else if (progress.assessments) {
+      if (progress.assessments) {
         assessments = mapToObject(progress.assessments);
+      } else if (progress.weeklyAssessments) {
+        assessments = mapToObject(progress.weeklyAssessments);
       }
       
       return {
@@ -265,6 +288,11 @@ const getAllUsers = async () => {
         progress: {
           baselineCompleted: progress.baselineCompleted !== undefined ? progress.baselineCompleted : (progress.baselineFRIQ !== null && progress.baselineFRIQ !== undefined),
           baselineFRIQ: progress.baselineFRIQ || null,
+          level2Completed: progress.level2Completed || false,
+          level2FRIQ: progress.level2FRIQ || null,
+          level3Completed: progress.level3Completed || false,
+          level3FRIQ: progress.level3FRIQ || null,
+          finalFRIQ: progress.finalFRIQ || progress.level3FRIQ || null,
           completedWeeks: Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [],
           currentWeek: progress.currentWeek || 0,
           assessments: assessments,

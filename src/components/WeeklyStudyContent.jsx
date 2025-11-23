@@ -222,40 +222,7 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
           <li>Complete the Reflection/Discussion Questions</li>
           <li>Write your Practical Application</li>
           <li>Apply the principles to your work life throughout the week</li>
-          <li>Complete the WISE assessment at the end of the week</li>
-          <li>Review your results and identify areas for growth</li>
         </ol>
-      </motion.div>
-
-      {/* Assessment Preview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-white rounded-xl shadow-lg p-6 md:p-8 border border-gray-200"
-      >
-        <h3 className="text-xl font-bold text-navy mb-4">WISE Assessment Preview</h3>
-        <p className="text-gray-700 mb-4">
-          After completing this week's study and reflection, you'll take a WISE assessment with questions aligned to this week's theme. The assessment will measure your growth in:
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.keys(weekData.questions).map((dimension) => {
-            const questions = weekData.questions[dimension] || [];
-            if (questions.length === 0) return null;
-            
-            return (
-              <div
-                key={dimension}
-                className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-              >
-                <div className="font-semibold text-navy mb-2">{dimension}</div>
-                <div className="text-sm text-gray-600">
-                  {questions.length} assessment question{questions.length !== 1 ? 's' : ''} this week
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </motion.div>
     </div>
   );

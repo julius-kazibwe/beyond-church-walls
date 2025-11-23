@@ -286,7 +286,6 @@ async function syncWeeklyContent() {
           keyScripture: weekData.keyScripture,
           keyScriptureText: weekData.keyScriptureText || '',
           completionMessage: completionMessage,
-          questions: weekData.questions || {},
         });
         synced++;
       } catch (error) {

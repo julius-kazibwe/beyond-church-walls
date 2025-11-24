@@ -93,11 +93,11 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 md:h-20">
+        <div className="flex justify-center items-center h-16 md:h-20 relative">
           <a
             href="#hero"
             onClick={(e) => scrollToSection(e, '#hero')}
-            className="flex items-center h-full py-2 transition-opacity duration-200 hover:opacity-80"
+            className="absolute left-0 flex items-center h-full py-2 transition-opacity duration-200 hover:opacity-80"
           >
             <img
               src="/logo_bcws.png"
@@ -113,8 +113,8 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
             />
           </a>
           
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden md:flex items-center justify-center space-x-4">
             {/* Main Links */}
             {mainNavLinks.map((link) => (
               <a
@@ -227,8 +227,10 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                 </>
               )}
             </div>
-            
-            {/* User Menu */}
+          </div>
+          
+          {/* User Menu - Right Side */}
+          <div className="hidden md:block absolute right-0">
             {user ? (
               <div className="relative">
                 <button
@@ -306,7 +308,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className={`md:hidden p-2 transition-colors duration-200 ${
+            className={`md:hidden absolute right-0 p-2 transition-colors duration-200 ${
               isScrolled ? 'text-navy' : 'text-white'
             }`}
             aria-label="Toggle menu"
@@ -327,14 +329,14 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-white/20">
-            <div className="flex flex-col space-y-3">
+            <div className="flex flex-col items-center space-y-3">
               {/* Main Links */}
               {mainNavLinks.map((link) => (
                 <a
                   key={link.name}
                   href={link.href}
                   onClick={(e) => scrollToSection(e, link.href)}
-                  className={`text-base font-medium transition-colors duration-200 hover:text-gold px-2 py-1 ${
+                  className={`text-base font-medium transition-colors duration-200 hover:text-gold px-2 py-1 text-center ${
                     isScrolled ? 'text-navy' : 'text-white'
                   }`}
                 >
@@ -343,8 +345,8 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
               ))}
 
               {/* Resources Section */}
-              <div className="px-2 py-1">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              <div className="px-2 py-1 w-full">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 text-center">
                   Resources
                 </div>
                 {resourcesItems.map((item) => (
@@ -360,7 +362,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                         scrollToSection(e, item.href);
                       }
                     }}
-                    className={`block text-base font-medium transition-colors duration-200 hover:text-gold py-1 ${
+                    className={`block text-base font-medium transition-colors duration-200 hover:text-gold py-1 text-center ${
                       item.highlight
                         ? 'bg-gold/20 text-gold rounded-lg font-semibold px-2'
                         : isScrolled ? 'text-navy' : 'text-white'
@@ -372,8 +374,8 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
               </div>
 
               {/* Get Involved Section */}
-              <div className="px-2 py-1">
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              <div className="px-2 py-1 w-full">
+                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 text-center">
                   Get Involved
                 </div>
                 {getInvolvedItems.map((item) => (
@@ -384,7 +386,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                       setIsMobileMenuOpen(false);
                       scrollToSection(e, item.href);
                     }}
-                    className={`block text-base font-medium transition-colors duration-200 hover:text-gold py-1 ${
+                    className={`block text-base font-medium transition-colors duration-200 hover:text-gold py-1 text-center ${
                       isScrolled ? 'text-navy' : 'text-white'
                     }`}
                   >
@@ -401,7 +403,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                       setIsMobileMenuOpen(false);
                       onOpenDashboard();
                     }}
-                    className={`text-base font-medium transition-colors duration-200 px-2 py-1 text-left ${
+                    className={`text-base font-medium transition-colors duration-200 px-2 py-1 text-center ${
                       isScrolled ? 'text-navy' : 'text-white'
                     }`}
                   >
@@ -412,7 +414,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                       setIsMobileMenuOpen(false);
                       logout();
                     }}
-                    className="text-base font-medium text-red-400 hover:text-red-300 px-2 py-1 text-left"
+                    className="text-base font-medium text-red-400 hover:text-red-300 px-2 py-1 text-center"
                   >
                     Sign Out
                   </button>
@@ -423,7 +425,7 @@ const Navigation = ({ onOpenWeeklyStudy, onOpenAuth, onOpenDashboard }) => {
                     setIsMobileMenuOpen(false);
                     onOpenAuth('login');
                   }}
-                  className={`text-base font-medium transition-colors duration-200 px-2 py-1 text-left ${
+                  className={`text-base font-medium transition-colors duration-200 px-2 py-1 text-center ${
                     isScrolled ? 'text-navy' : 'text-white'
                   }`}
                 >

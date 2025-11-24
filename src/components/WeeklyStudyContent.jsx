@@ -4,6 +4,7 @@ import { getStudyQuestions } from '../utils/weeklyContent';
 
 const WeeklyStudyContent = ({ weekNumber, weekData }) => {
   const [reflectionAnswers, setReflectionAnswers] = useState({});
+  const [studyAnswers, setStudyAnswers] = useState({});
   const [practicalApplication, setPracticalApplication] = useState('');
 
   // Load saved answers from localStorage
@@ -15,6 +16,15 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
           setReflectionAnswers(JSON.parse(saved));
         } catch (e) {
           console.error('Error loading reflections:', e);
+        }
+      }
+      
+      const savedStudy = localStorage.getItem(`week_${weekNumber}_study`);
+      if (savedStudy) {
+        try {
+          setStudyAnswers(JSON.parse(savedStudy));
+        } catch (e) {
+          console.error('Error loading study answers:', e);
         }
       }
       
@@ -33,6 +43,18 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
     
     // Dispatch custom event to notify parent component
     window.dispatchEvent(new CustomEvent('reflectionAnswerChanged', { 
+      detail: { weekNumber, questionId, value } 
+    }));
+  };
+
+  // Save study question answers
+  const handleStudyChange = (questionId, value) => {
+    const updated = { ...studyAnswers, [questionId]: value };
+    setStudyAnswers(updated);
+    localStorage.setItem(`week_${weekNumber}_study`, JSON.stringify(updated));
+    
+    // Dispatch custom event to notify parent component
+    window.dispatchEvent(new CustomEvent('studyAnswerChanged', { 
       detail: { weekNumber, questionId, value } 
     }));
   };
@@ -126,23 +148,36 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-lg p-6 md:p-8 border border-gray-200"
+          className="bg-gradient-to-br from-gold/10 to-navy/5 rounded-xl p-6 md:p-8 border-2 border-gold/30"
         >
           <h3 className="text-2xl font-bold text-navy mb-4">Study Questions</h3>
-          <p className="text-gray-600 mb-6">
-            Reflect on these questions as you study this week's content. Consider writing your answers in a journal or discussing them with your group.
+          <p className="text-gray-700 mb-6">
+            Reflect on these questions as you study this week's content. Write your answers below.
           </p>
-          <ol className="space-y-4">
-            {studyQuestions.studyQuestions.map((q, idx) => (
-              <li key={q.id || idx} className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-navy text-white rounded-full flex items-center justify-center font-bold">
-                  {idx + 1}
-                </span>
-                <div className="flex-1">
-                  <p className="text-gray-800 leading-relaxed">{q.question || q}</p>
-                </div>
-              </li>
-            ))}
+          <ol className="space-y-6">
+            {studyQuestions.studyQuestions.map((q, idx) => {
+              const questionId = q.id || `study-${idx}`;
+              const questionText = q.question || q;
+              return (
+                <li key={questionId} className="bg-white/50 rounded-lg p-4">
+                  <div className="flex gap-4 mb-3">
+                    <span className="flex-shrink-0 w-8 h-8 bg-navy text-white rounded-full flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                    <p className="text-gray-800 font-medium leading-relaxed flex-1">{questionText}</p>
+                  </div>
+                  <div className="border-t-2 border-dashed border-gray-300 pt-3">
+                    <textarea
+                      value={studyAnswers[questionId] || ''}
+                      onChange={(e) => handleStudyChange(questionId, e.target.value)}
+                      placeholder="Write your answer here..."
+                      className="w-full min-h-[60px] bg-transparent border-none outline-none resize-none text-gray-800 placeholder:text-gray-500 placeholder:italic focus:placeholder:text-gray-400"
+                      rows={3}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </motion.div>
       )}
@@ -218,9 +253,9 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
         <h3 className="text-xl font-bold text-navy mb-4">How to Use This Week's Study</h3>
         <ol className="space-y-3 text-gray-700 list-decimal list-inside">
           <li>Read the Key Scripture and Summary</li>
-          <li>Reflect on the Study Questions and answer them thoughtfully</li>
-          <li>Complete the Reflection/Discussion Questions</li>
-          <li>Write your Practical Application</li>
+          <li>Answer the Study Questions thoughtfully (your answers are saved automatically)</li>
+          <li>Complete the Reflection/Discussion Questions (your answers are saved automatically)</li>
+          <li>Write your Practical Application (saved automatically)</li>
           <li>Apply the principles to your work life throughout the week</li>
         </ol>
       </motion.div>

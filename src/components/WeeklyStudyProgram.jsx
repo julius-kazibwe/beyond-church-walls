@@ -41,6 +41,10 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   const [weekData, setWeekData] = useState(null);
   const [allWeeksData, setAllWeeksData] = useState({});
   const [loadingContent, setLoadingContent] = useState(true);
+  const [selectedAssessmentLevel, setSelectedAssessmentLevel] = useState('1');
+  const [hasManualAssessmentSelection, setHasManualAssessmentSelection] = useState(false);
+  const [showAssessmentDetails, setShowAssessmentDetails] = useState(false);
+  const [showWeekList, setShowWeekList] = useState(false);
 
   useEffect(() => {
     // Load progress and weekly content on mount
@@ -218,10 +222,126 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     setSelectedWeek(weekNum);
   };
 
+  const formatFRIQScore = (score) => {
+    if (typeof score !== 'number' || Number.isNaN(score)) return null;
+    return (score * 100).toFixed(1);
+  };
+
+  const assessmentOptions = [
+    {
+      value: '1',
+      title: 'Level 1 • Determine Baseline FRIQ',
+      description: 'Start here. This unlocks the 10-week study guide and saves your starting score.',
+      available: true,
+      completed: baselineCompleted,
+      score: formatFRIQScore(baselineFRIQ),
+      lockedReason: '',
+      helperText: 'Required before you can open the weekly lessons.',
+      activationWeek: 0, // Always available
+    },
+    {
+      value: '2',
+      title: 'Level 2 • Midpoint Assessment',
+      description: 'Re-check your FRIQ after Week 5 to measure how you are growing.',
+      available: baselineCompleted && currentWeek >= 5 && (canTakeLevel2Assessment || level2Completed),
+      completed: level2Completed,
+      score: formatFRIQScore(level2FRIQ),
+      lockedReason: !baselineCompleted
+        ? 'Complete Level 1 first.'
+        : currentWeek < 5
+        ? 'Unlocks when you reach Week 5.'
+        : !canTakeLevel2Assessment && !level2Completed
+        ? 'Unlocks after Week 5 is completed.'
+        : '',
+      helperText: 'Shows how far you have come halfway through the study.',
+      activationWeek: 5,
+    },
+    {
+      value: '3',
+      title: 'Level 3 • Final FRIQ Assessment',
+      description: 'Celebrate your transformation after Week 10 and capture your final score.',
+      available:
+        baselineCompleted &&
+        currentWeek >= 10 &&
+        (canTakeLevel3Assessment || level3Completed),
+      completed: level3Completed,
+      score: formatFRIQScore(level3FRIQ),
+      lockedReason: !baselineCompleted
+        ? 'Complete Level 1 first.'
+        : currentWeek < 10
+        ? 'Unlocks when you reach Week 10.'
+        : !level2Completed
+        ? 'Finish Level 2 before taking the final assessment.'
+        : !canTakeLevel3Assessment && !level3Completed
+        ? 'Unlocks after Week 10 is completed.'
+        : '',
+      helperText: 'Confirms your final FRIQ and the impact of the full journey.',
+      activationWeek: 10,
+    },
+  ];
+
+  const selectedAssessment =
+    assessmentOptions.find((option) => option.value === selectedAssessmentLevel) ||
+    assessmentOptions[0];
+
+  const getAssessmentStatusLabel = (option) => {
+    if (option.completed && option.score) {
+      return `Completed · ${option.score} FRIQ`;
+    }
+    if (option.completed) {
+      return 'Completed';
+    }
+    if (!option.available) {
+      return option.lockedReason || 'Locked';
+    }
+    return 'Ready';
+  };
+
+  const handleAssessmentStart = () => {
+    if (!selectedAssessment?.available) return;
+    if (selectedAssessmentLevel === '1') {
+      handleStartBaselineAssessment();
+    } else if (selectedAssessmentLevel === '2') {
+      handleStartLevel2Assessment();
+    } else if (selectedAssessmentLevel === '3') {
+      handleStartLevel3Assessment();
+    }
+  };
+
+  const baselineUnlockedWeekValue = baselineCompleted ? String(selectedWeek) : '';
+  const isLevel2AccessWindow =
+    baselineCompleted && currentWeek >= 5 && (canTakeLevel2Assessment || level2Completed);
+  const isLevel3AccessWindow =
+    baselineCompleted && currentWeek >= 10 && (canTakeLevel3Assessment || level3Completed);
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+  useEffect(() => {
+    if (hasManualAssessmentSelection) {
+      return;
+    }
+    if (!baselineCompleted) {
+      setSelectedAssessmentLevel('1');
+      return;
+    }
+    if (isLevel3AccessWindow) {
+      setSelectedAssessmentLevel('3');
+      return;
+    }
+    if (isLevel2AccessWindow) {
+      setSelectedAssessmentLevel('2');
+      return;
+    }
+    setSelectedAssessmentLevel('1');
+  }, [
+    baselineCompleted,
+    isLevel2AccessWindow,
+    isLevel3AccessWindow,
+    hasManualAssessmentSelection,
+  ]);
+
 
   return (
     <AnimatePresence>
@@ -269,234 +389,227 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
               <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-gradient-to-br from-gold/10 via-white to-gold/10">
                 <div className="max-w-7xl mx-auto">
 
-                  {/* Baseline Assessment Requirement */}
-                  {!baselineCompleted && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-navy text-white rounded-xl shadow-lg p-8 border border-gray-200">
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold mb-2">Before Week 1: Baseline Assessment</h3>
-                          <p className="text-white/90 mb-4">
-                            Take the Level 1 Assessment Test to establish your baseline FRIQ score. This will help you track your growth throughout the study program.
-                          </p>
-                          <button
-                            onClick={handleStartBaselineAssessment}
-                            className="px-6 py-3 bg-white text-navy rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                          >
-                            Start Baseline
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Baseline Results Display */}
-                  {baselineCompleted && baselineFRIQ !== null && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-green-50 border-2 border-green-200 rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-green-800 mb-1">✓ Level 1: Baseline Assessment Completed</h3>
-                            <p className="text-green-700">Your baseline FRIQ score: <strong className="text-xl">{(baselineFRIQ * 100).toFixed(1)}</strong></p>
-                          </div>
-                          <button
-                            onClick={handleStartBaselineAssessment}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
-                          >
-                            Retake
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Level 2 Assessment - After Week 5 */}
-                  {baselineCompleted && canTakeLevel2Assessment && !level2Completed && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-blue-600 text-white rounded-xl shadow-lg p-8 border border-gray-200">
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold mb-2">After Week 5: Level 2 Assessment</h3>
-                          <p className="text-white/90 mb-4">
-                            Take the Level 2 Assessment to measure your progress. This assessment uses more advanced questions to evaluate your growth in the WISE Framework.
-                          </p>
-                          <button
-                            onClick={handleStartLevel2Assessment}
-                            className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                          >
-                            Start Level 2 Assessment
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Level 2 Results Display */}
-                  {level2Completed && level2FRIQ !== null && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-blue-800 mb-1">✓ Level 2: Mid-Program Assessment Completed</h3>
-                            <p className="text-blue-700">Your Level 2 FRIQ score: <strong className="text-xl">{(level2FRIQ * 100).toFixed(1)}</strong></p>
-                            {baselineFRIQ !== null && (
-                              <p className="text-blue-600 text-sm mt-1">
-                                Change from baseline: {((level2FRIQ - baselineFRIQ) * 100).toFixed(1)} points
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            onClick={handleStartLevel2Assessment}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
-                          >
-                            Retake
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Level 3 Assessment - After Week 10 */}
-                  {baselineCompleted && canTakeLevel3Assessment && !level3Completed && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-blue-700 text-white rounded-xl shadow-lg p-8 border border-gray-200">
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold mb-2">After Week 10: Level 3 Final FRIQ Assessment</h3>
-                          <p className="text-white/90 mb-4">
-                            Take the final Level 3 Assessment to measure your complete transformation. This assessment uses the most advanced questions to evaluate your Kingdom impact and final FRIQ score.
-                          </p>
-                          <button
-                            onClick={handleStartLevel3Assessment}
-                            className="px-6 py-3 bg-white text-blue-700 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                          >
-                            Start Final FRIQ Assessment
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Level 3 Results Display */}
-                  {level3Completed && level3FRIQ !== null && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-8"
-                    >
-                      <div className="bg-blue-50 border-2 border-blue-300 rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-bold text-blue-800 mb-1">✓ Level 3: Final FRIQ Assessment Completed</h3>
-                            <p className="text-blue-700">Your Final FRIQ score: <strong className="text-xl">{(level3FRIQ * 100).toFixed(1)}</strong></p>
-                            {baselineFRIQ !== null && (
-                              <p className="text-blue-600 text-sm mt-1">
-                                Total growth from baseline: {((level3FRIQ - baselineFRIQ) * 100).toFixed(1)} points
-                              </p>
-                            )}
-                            {level2FRIQ !== null && (
-                              <p className="text-blue-600 text-sm">
-                                Change from Level 2: {((level3FRIQ - level2FRIQ) * 100).toFixed(1)} points
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            onClick={handleStartLevel3Assessment}
-                            className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm font-semibold"
-                          >
-                            Retake
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Week Navigation */}
+                  {/* Quick Navigation */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
                     className="mb-8"
                   >
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-navy mb-4">Select a Week</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
-              {Array.from({ length: totalWeeks }, (_, i) => {
-                const weekNum = i + 1;
-                const weekInfo = allWeeksData[weekNum] || null;
-                const isCompleted = completedWeeks.includes(weekNum);
-                const isCurrent = weekNum === currentWeek;
-                const isSelected = weekNum === selectedWeek;
-                const isAvailable = weekInfo?.isAvailable !== false; // Default to true if not set
-                const isLocked = !baselineCompleted || (weekNum > currentWeek && !isCompleted) || !isAvailable;
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Step 1 */}
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gold">Step 1</p>
+                              <h3 className="text-lg font-bold text-navy">Determine FRIQ Level</h3>
+                            </div>
+                            <button
+                              onClick={() => setShowAssessmentDetails((prev) => !prev)}
+                              className="text-sm text-navy underline hover:text-gold"
+                            >
+                              {showAssessmentDetails ? 'Hide details' : 'Show details'}
+                            </button>
+                          </div>
+                          <select
+                            id="assessment-select"
+                            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:ring-2 focus:ring-gold focus:border-gold transition disabled:bg-gray-100 disabled:text-gray-500"
+                            value={selectedAssessmentLevel}
+                            onChange={(e) => {
+                              setHasManualAssessmentSelection(true);
+                              setSelectedAssessmentLevel(e.target.value);
+                            }}
+                          >
+                            {assessmentOptions.map((option) => (
+                              <option 
+                                key={option.value} 
+                                value={option.value}
+                                disabled={!option.available}
+                              >
+                                {option.title}
+                                {option.completed && option.score ? ` • ${option.score} FRIQ` : ''}
+                                {!option.available && option.activationWeek > 0 ? ` (Unlocks at Week ${option.activationWeek})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={handleAssessmentStart}
+                              disabled={!selectedAssessment?.available}
+                              className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                                selectedAssessment?.available
+                                  ? 'bg-navy text-white hover:bg-blue-900 shadow-md hover:shadow-lg'
+                                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              }`}
+                            >
+                              {selectedAssessment?.completed ? 'Retake Assessment' : 'Start Assessment'}
+                            </button>
+                            <div className="text-sm text-gray-600">
+                              <p className="font-semibold text-navy">{getAssessmentStatusLabel(selectedAssessment)}</p>
+                              {selectedAssessment?.helperText && (
+                                <p className="text-xs mt-1">{selectedAssessment.helperText}</p>
+                              )}
+                              {!selectedAssessment?.available && selectedAssessment?.lockedReason && (
+                                <p className="text-xs text-red-500 mt-1">{selectedAssessment.lockedReason}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
 
-                return (
-                  <button
-                    key={weekNum}
-                    onClick={() => !isLocked && handleWeekSelect(weekNum)}
-                    disabled={isLocked}
-                    className={`
-                      relative px-4 py-3 rounded-lg font-semibold transition-all
-                      ${isSelected 
-                        ? 'bg-navy text-white shadow-lg scale-105' 
-                        : isCompleted
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                        : isCurrent
-                        ? 'bg-gold text-navy hover:bg-gold/80'
-                        : !isAvailable
-                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                        : isLocked
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                      }
-                    `}
-                    title={
-                      !isAvailable && weekInfo?.startDate
-                        ? `Available starting ${formatDate(weekInfo.startDate)}`
-                        : weekInfo && weekInfo.startDate
-                        ? `${formatDate(weekInfo.startDate)} - ${formatDate(weekInfo.endDate)}`
-                        : ''
-                    }
-                  >
-                    Week {weekNum}
-                    {weekInfo && weekInfo.startDate && (
-                      <div className="text-xs mt-1 opacity-75">
-                        {formatDate(weekInfo.startDate).split(',')[0]}
+                        {/* Step 2 */}
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gold">Step 2</p>
+                              <h3 className="text-lg font-bold text-navy">10 Week Study Guide</h3>
+                            </div>
+                            <button
+                              onClick={() => setShowWeekList((prev) => !prev)}
+                              className="text-sm text-navy underline hover:text-gold"
+                            >
+                              {showWeekList ? 'Hide all weeks' : 'Show all weeks'}
+                            </button>
+                          </div>
+                          <select
+                            id="week-select"
+                            value={baselineUnlockedWeekValue}
+                            disabled={!baselineCompleted}
+                            onChange={(e) => {
+                              const value = Number(e.target.value);
+                              if (!Number.isNaN(value)) {
+                                handleWeekSelect(value);
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:ring-2 focus:ring-gold focus:border-gold transition disabled:bg-gray-100 disabled:text-gray-500"
+                          >
+                            <option value="" disabled>
+                              {baselineCompleted ? 'Select a week' : 'Finish Level 1 to unlock weeks'}
+                            </option>
+                            {Array.from({ length: totalWeeks }, (_, i) => {
+                              const weekNum = i + 1;
+                              const weekInfo = allWeeksData[weekNum] || null;
+                              const isCompleted = completedWeeks.includes(weekNum);
+                              const isCurrent = weekNum === currentWeek;
+                              const isAvailable = weekInfo?.isAvailable !== false;
+                              const isLocked = !baselineCompleted || (weekNum > currentWeek && !isCompleted) || !isAvailable;
+
+                              return (
+                                <option key={weekNum} value={weekNum} disabled={isLocked}>
+                                  {`Week ${weekNum}${isCompleted ? ' • Completed' : isCurrent ? ' • Current' : ''}${
+                                    !isAvailable ? ' • Coming Soon' : ''
+                                  }`}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <div className="text-sm text-gray-600 bg-navy/5 border border-navy/10 rounded-lg p-4">
+                            <p className="font-semibold text-navy mb-1">
+                              {baselineCompleted ? `Currently viewing Week ${selectedWeek}` : 'Unlock weeks by finishing Level 1'}
+                            </p>
+                            <p>
+                              Your responses are saved automatically. Need a PDF? Download from the dashboard any time.
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    {isCompleted && (
-                      <span className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                        ✓
-                      </span>
-                    )}
-                    {isCurrent && !isCompleted && isAvailable && (
-                      <span className="absolute -top-1 -right-1 bg-gold text-navy rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                        •
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
+
+                      {/* Optional details */}
+                      {showAssessmentDetails && (
+                        <div className="grid gap-4 md:grid-cols-3 mt-6">
+                          {assessmentOptions.map((option) => (
+                            <div
+                              key={option.value}
+                              className={`border rounded-lg p-4 ${
+                                selectedAssessmentLevel === option.value ? 'border-navy shadow-md' : 'border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-xs uppercase tracking-wide text-gray-500">Level {option.value}</p>
+                                  <h4 className="font-semibold text-navy">
+                                    {option.title.split('•')[1]?.trim() || option.title}
+                                  </h4>
+                                </div>
+                                {option.completed && (
+                                  <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                    Completed
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mt-2">{option.description}</p>
+                              <p className="text-sm font-semibold text-gray-800 mt-3">
+                                Status: {getAssessmentStatusLabel(option)}
+                              </p>
+                              {!option.available && option.lockedReason && (
+                                <p className="text-xs text-red-500 mt-1">{option.lockedReason}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {showWeekList && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3 mt-6">
+                          {Array.from({ length: totalWeeks }, (_, i) => {
+                            const weekNum = i + 1;
+                            const weekInfo = allWeeksData[weekNum] || null;
+                            const isCompleted = completedWeeks.includes(weekNum);
+                            const isCurrent = weekNum === currentWeek;
+                            const isSelected = weekNum === selectedWeek;
+                            const isAvailable = weekInfo?.isAvailable !== false;
+                            const isLocked = !baselineCompleted || (weekNum > currentWeek && !isCompleted) || !isAvailable;
+
+                            return (
+                              <button
+                                key={weekNum}
+                                onClick={() => !isLocked && handleWeekSelect(weekNum)}
+                                disabled={isLocked}
+                                className={`
+                                  relative px-4 py-3 rounded-lg font-semibold transition-all
+                                  ${isSelected 
+                                    ? 'bg-navy text-white shadow-lg scale-105' 
+                                    : isCompleted
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : isCurrent
+                                    ? 'bg-gold text-navy hover:bg-gold/80'
+                                    : !isAvailable
+                                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                    : isLocked
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                  }
+                                `}
+                                title={
+                                  !isAvailable && weekInfo?.startDate
+                                    ? `Available starting ${formatDate(weekInfo.startDate)}`
+                                    : weekInfo && weekInfo.startDate
+                                    ? `${formatDate(weekInfo.startDate)} - ${formatDate(weekInfo.endDate)}`
+                                    : ''
+                                }
+                              >
+                                Week {weekNum}
+                                {weekInfo && weekInfo.startDate && (
+                                  <div className="text-xs mt-1 opacity-75">
+                                    {formatDate(weekInfo.startDate).split(',')[0]}
+                                  </div>
+                                )}
+                                {isCompleted && (
+                                  <span className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                    ✓
+                                  </span>
+                                )}
+                                {isCurrent && !isCompleted && isAvailable && (
+                                  <span className="absolute -top-1 -right-1 bg-gold text-navy rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                                    •
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
 
                   {/* Progress Overview */}
                   {progress && (
@@ -548,6 +661,55 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                                   ? `This week will be available starting ${formatDate(weekData.startDate)}.`
                                   : 'This week will be available soon.'}
                               </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                      {((isLevel2AccessWindow && !level2Completed) || (isLevel3AccessWindow && !level3Completed)) && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mb-6"
+                        >
+                          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-blue-700">
+                                {isLevel3AccessWindow && !level3Completed
+                                  ? 'You have unlocked the Level 3 Final FRIQ Assessment.'
+                                  : 'You have unlocked the Level 2 Midpoint Assessment.'}
+                              </p>
+                              <p className="text-sm text-blue-600">
+                                {isLevel3AccessWindow && !level3Completed
+                                  ? 'Capture your final score now that you are in Week 10.'
+                                  : 'Measure your growth now that you have reached Week 5.'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => {
+                                  const levelToStart = isLevel3AccessWindow && !level3Completed ? '3' : '2';
+                                  setSelectedAssessmentLevel(levelToStart);
+                                  setHasManualAssessmentSelection(true);
+                                  if (levelToStart === '3') {
+                                    handleStartLevel3Assessment();
+                                  } else {
+                                    handleStartLevel2Assessment();
+                                  }
+                                }}
+                                className="px-5 py-2 bg-navy text-white rounded-lg font-semibold hover:bg-blue-900 transition"
+                              >
+                                {isLevel3AccessWindow && !level3Completed
+                                  ? 'Start Level 3 Assessment'
+                                  : 'Start Level 2 Assessment'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowAssessmentDetails(true);
+                                }}
+                                className="text-sm text-blue-700 underline hover:text-blue-900"
+                              >
+                                View details
+                              </button>
                             </div>
                           </div>
                         </motion.div>

@@ -72,18 +72,27 @@ const UserDashboard = ({ isOpen, onClose }) => {
         return;
       }
       
-      // Get reflections and practical applications from localStorage
+      // Get reflections, study answers, and practical applications from localStorage
       const reflections = {};
+      const studyAnswers = {};
       const practicalApplications = {};
       
       for (let i = 1; i <= 12; i++) {
         const weekReflections = localStorage.getItem(`week_${i}_reflections`);
+        const weekStudy = localStorage.getItem(`week_${i}_study`);
         const weekPractical = localStorage.getItem(`week_${i}_practical`);
         if (weekReflections) {
           try {
             reflections[i] = JSON.parse(weekReflections);
           } catch (e) {
             console.warn(`Error parsing reflections for week ${i}:`, e);
+          }
+        }
+        if (weekStudy) {
+          try {
+            studyAnswers[i] = JSON.parse(weekStudy);
+          } catch (e) {
+            console.warn(`Error parsing study answers for week ${i}:`, e);
           }
         }
         if (weekPractical) {
@@ -94,6 +103,7 @@ const UserDashboard = ({ isOpen, onClose }) => {
       const progressToSync = {
         ...localProgress,
         reflections,
+        studyAnswers,
         practicalApplications
       };
 
@@ -118,6 +128,7 @@ const UserDashboard = ({ isOpen, onClose }) => {
         localStorage.removeItem('bcw_weekly_progress');
         for (let i = 1; i <= 12; i++) {
           localStorage.removeItem(`week_${i}_reflections`);
+          localStorage.removeItem(`week_${i}_study`);
           localStorage.removeItem(`week_${i}_practical`);
         }
       }

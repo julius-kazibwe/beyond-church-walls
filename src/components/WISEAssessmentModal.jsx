@@ -947,14 +947,14 @@ const WISEAssessmentModal = ({ isOpen, onClose, onComplete, level = 1 }) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-navy to-blue-900 text-white p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-r from-navy to-blue-900 text-white p-4 md:p-5 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-bold">{getLevelTitle(level)}</h2>
-                    <p className="text-sm text-white/80 mt-1">WISE Framework Assessment</p>
+                    <h2 className="text-xl md:text-2xl font-bold">{getLevelTitle(level)}</h2>
+                    <p className="text-xs md:text-sm text-white/80 mt-0.5">WISE Framework Assessment</p>
                   </div>
                   <button
                     onClick={handleClose}
@@ -965,22 +965,22 @@ const WISEAssessmentModal = ({ isOpen, onClose, onComplete, level = 1 }) => {
                     </svg>
                   </button>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 bg-white/20 rounded-full h-2">
                     <div
                       className="bg-gold h-2 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <span className="text-sm font-semibold">
+                  <span className="text-xs md:text-sm font-semibold whitespace-nowrap">
                     {answeredQuestions} / {totalQuestions}
                   </span>
                 </div>
-                <div className="mt-4 flex gap-2">
+                <div className="flex gap-2">
                   {dimensions.map((dim, idx) => (
                     <div
                       key={dim}
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      className={`px-2.5 py-1 rounded-full text-xs md:text-sm font-semibold ${
                         idx === currentDimension
                           ? 'bg-gold text-navy'
                           : idx < currentDimension
@@ -995,40 +995,40 @@ const WISEAssessmentModal = ({ isOpen, onClose, onComplete, level = 1 }) => {
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                <div className="mb-6">
-                  <div className="inline-block bg-gold/10 text-navy px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 min-h-0">
+                <div className="mb-3">
+                  <div className="inline-block bg-gold/10 text-navy px-3 py-1.5 rounded-full text-xs md:text-sm font-semibold mb-2">
                     {currentDim} — {currentQuestion + 1} of {questions.length}
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-navy mb-6 leading-relaxed">
+                  <h3 className="text-base md:text-lg font-bold text-navy mb-3 leading-relaxed">
                     {currentQ.question}
                   </h3>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {currentQ.options.map((option, idx) => {
                     const isSelected = answers[currentQ.id] === option.value;
                     return (
                       <button
                         key={idx}
                         onClick={() => handleAnswer(currentQ.id, option.value)}
-                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        className={`w-full text-left p-2.5 md:p-3 rounded-lg border-2 transition-all ${
                           isSelected
                             ? 'border-gold bg-gold/10 shadow-md'
                             : 'border-gray-200 hover:border-gold/50 hover:bg-gold/5'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold text-navy mb-1">
+                        <div className="flex items-center justify-between gap-2 md:gap-3">
+                          <div className="flex items-center gap-2 md:gap-3 flex-1">
+                            <div className="font-bold text-navy text-base md:text-lg min-w-[1.5rem] md:min-w-[2rem]">
                               {option.label}
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-xs md:text-sm text-gray-700">
                               {option.text}
                             </div>
                           </div>
                           {isSelected && (
-                            <div className="bg-gold text-navy rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                            <div className="bg-gold text-navy rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center font-bold flex-shrink-0 text-xs md:text-sm">
                               ✓
                             </div>
                           )}
@@ -1040,18 +1040,18 @@ const WISEAssessmentModal = ({ isOpen, onClose, onComplete, level = 1 }) => {
               </div>
 
               {/* Footer */}
-              <div className="border-t border-gray-200 p-6 flex items-center justify-between">
+              <div className="border-t border-gray-200 p-4 md:p-5 flex items-center justify-between flex-shrink-0">
                 <button
                   onClick={handlePrevious}
                   disabled={currentDimension === 0 && currentQuestion === 0}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold text-sm md:text-base"
                 >
                   Previous
                 </button>
                 <button
                   onClick={handleNext}
                   disabled={!answers[currentQ.id]}
-                  className="px-6 py-3 bg-navy text-white rounded-lg hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
+                  className="px-5 py-2.5 bg-navy text-white rounded-lg hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold text-sm md:text-base"
                 >
                   {currentDimension === dimensions.length - 1 && currentQuestion === questions.length - 1
                     ? 'View Results'

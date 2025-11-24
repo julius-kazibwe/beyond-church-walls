@@ -343,7 +343,7 @@ const AboutBook = ({ onOpenWeeklyStudy }) => {
                   Assess your faith integration at work with the WISE Framework and discover your Faith Relevance Index Quotient (FRIQ)
                 </p>
                 <button
-                  onClick={() => onOpenWeeklyStudy && onOpenWeeklyStudy()}
+                  onClick={() => setShowWISEModal(true)}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-semibold rounded-lg hover:bg-blue-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

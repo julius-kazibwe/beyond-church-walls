@@ -12,18 +12,27 @@ const syncToBackend = async (progress) => {
   }
 
   try {
-    // Also get reflections and practical applications
+    // Also get reflections, study answers, and practical applications
     const reflections = {};
+    const studyAnswers = {};
     const practicalApplications = {};
     
     for (let i = 1; i <= 12; i++) {
       const weekReflections = localStorage.getItem(`week_${i}_reflections`);
+      const weekStudy = localStorage.getItem(`week_${i}_study`);
       const weekPractical = localStorage.getItem(`week_${i}_practical`);
       if (weekReflections) {
         try {
           reflections[i] = JSON.parse(weekReflections);
         } catch (e) {
           console.warn(`Error parsing reflections for week ${i}:`, e);
+        }
+      }
+      if (weekStudy) {
+        try {
+          studyAnswers[i] = JSON.parse(weekStudy);
+        } catch (e) {
+          console.warn(`Error parsing study answers for week ${i}:`, e);
         }
       }
       if (weekPractical) {
@@ -34,6 +43,7 @@ const syncToBackend = async (progress) => {
     const progressToSync = {
       ...progress,
       reflections,
+      studyAnswers,
       practicalApplications
     };
 
@@ -108,15 +118,23 @@ export const getProgress = async () => {
         reflections: backendProgress.reflections && typeof backendProgress.reflections === 'object'
           ? backendProgress.reflections
           : {},
+        studyAnswers: backendProgress.studyAnswers && typeof backendProgress.studyAnswers === 'object'
+          ? backendProgress.studyAnswers
+          : {},
         practicalApplications: backendProgress.practicalApplications && typeof backendProgress.practicalApplications === 'object'
           ? backendProgress.practicalApplications
           : {}
       };
       
-      // Also sync reflections and practical applications to localStorage
+      // Also sync reflections, study answers, and practical applications to localStorage
       if (normalizedProgress.reflections) {
         Object.entries(normalizedProgress.reflections).forEach(([week, data]) => {
           localStorage.setItem(`week_${week}_reflections`, JSON.stringify(data));
+        });
+      }
+      if (normalizedProgress.studyAnswers) {
+        Object.entries(normalizedProgress.studyAnswers).forEach(([week, data]) => {
+          localStorage.setItem(`week_${week}_study`, JSON.stringify(data));
         });
       }
       if (normalizedProgress.practicalApplications) {
@@ -125,7 +143,7 @@ export const getProgress = async () => {
         });
       }
       // Save to localStorage as backup
-      const { reflections, practicalApplications, ...progressToStore } = normalizedProgress;
+      const { reflections, studyAnswers, practicalApplications, ...progressToStore } = normalizedProgress;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(progressToStore));
       return normalizedProgress;
     }
@@ -305,18 +323,20 @@ export const getLevel3Assessment = async () => {
 export const canTakeLevel2 = async () => {
   const progress = await getProgress();
   if (!progress.baselineCompleted) return false;
-  // Check if week 5 is completed
   const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
-  return completedWeeks.includes(5);
+  const unlockedWeek = progress.currentWeek || 0;
+  // Allow when Week 5 is completed OR the user has reached Week 5 (currentWeek shows unlocked access)
+  return completedWeeks.includes(5) || unlockedWeek >= 5;
 };
 
 // Check if user has completed enough weeks to take Level 3 (after week 10)
 export const canTakeLevel3 = async () => {
   const progress = await getProgress();
   if (!progress.baselineCompleted) return false;
-  // Check if week 10 is completed
   const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
-  return completedWeeks.includes(10);
+  const unlockedWeek = progress.currentWeek || 0;
+  // Allow when Week 10 is completed OR the user has unlocked Week 10
+  return completedWeeks.includes(10) || unlockedWeek >= 10;
 };
 
 export const resetProgress = () => {

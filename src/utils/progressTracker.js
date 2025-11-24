@@ -249,6 +249,33 @@ export const isWeekCompleted = async (weekNumber) => {
   return Array.isArray(progress.completedWeeks) && progress.completedWeeks.includes(weekNumber);
 };
 
+// Mark a week as completed manually (when user finishes study content)
+export const markWeekComplete = async (weekNumber) => {
+  const progress = await getProgress();
+  
+  // Ensure completedWeeks is an array
+  if (!Array.isArray(progress.completedWeeks)) {
+    progress.completedWeeks = [];
+  }
+  
+  // Mark week as completed if not already
+  if (!progress.completedWeeks.includes(weekNumber)) {
+    progress.completedWeeks.push(weekNumber);
+    progress.completedWeeks.sort((a, b) => a - b);
+  }
+  
+  // Update current week to next uncompleted week
+  const totalWeeks = 12; // Update this based on your total weeks
+  for (let i = 1; i <= totalWeeks; i++) {
+    if (!progress.completedWeeks.includes(i)) {
+      progress.currentWeek = i;
+      break;
+    }
+  }
+  
+  return await saveProgress(progress);
+};
+
 export const getCurrentWeek = async () => {
   const progress = await getProgress();
   return progress.currentWeek || 0; // 0 means baseline not completed

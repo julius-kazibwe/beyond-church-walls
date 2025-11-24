@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getStudyQuestions } from '../utils/weeklyContent';
+import { markWeekComplete, isWeekCompleted } from '../utils/progressTracker';
 
 const WeeklyStudyContent = ({ weekNumber, weekData }) => {
   const [reflectionAnswers, setReflectionAnswers] = useState({});
   const [studyAnswers, setStudyAnswers] = useState({});
   const [practicalApplication, setPracticalApplication] = useState('');
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
-  // Load saved answers from localStorage
+  // Load saved answers from localStorage and check completion status
   useEffect(() => {
     if (weekNumber) {
       const saved = localStorage.getItem(`week_${weekNumber}_reflections`);
@@ -32,6 +35,13 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
       if (savedApp) {
         setPracticalApplication(savedApp);
       }
+      
+      // Check if week is already completed
+      const checkCompletion = async () => {
+        const completed = await isWeekCompleted(weekNumber);
+        setIsCompleted(completed);
+      };
+      checkCompletion();
     }
   }, [weekNumber]);
 
@@ -63,6 +73,43 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
   const handlePracticalChange = (value) => {
     setPracticalApplication(value);
     localStorage.setItem(`week_${weekNumber}_practical`, value);
+  };
+
+  // Check if all sections have content
+  const hasAllContent = () => {
+    const studyQuestionsCount = studyQuestions?.studyQuestions?.length || 0;
+    const reflectionQuestionsCount = studyQuestions?.reflectionQuestions?.length || 0;
+    
+    const studyAnswersCount = Object.keys(studyAnswers).filter(key => studyAnswers[key]?.trim()).length;
+    const reflectionAnswersCount = Object.keys(reflectionAnswers).filter(key => reflectionAnswers[key]?.trim()).length;
+    const hasPractical = practicalApplication.trim().length > 0;
+    
+    // If there are no questions, only require practical application
+    if (studyQuestionsCount === 0 && reflectionQuestionsCount === 0) {
+      return hasPractical;
+    }
+    
+    // Otherwise, require all sections to be completed
+    return studyAnswersCount >= studyQuestionsCount && 
+           reflectionAnswersCount >= reflectionQuestionsCount && 
+           hasPractical;
+  };
+
+  // Handle marking week as complete
+  const handleMarkComplete = async () => {
+    setIsMarkingComplete(true);
+    try {
+      await markWeekComplete(weekNumber);
+      setIsCompleted(true);
+      // Dispatch event to notify parent component
+      window.dispatchEvent(new CustomEvent('weekCompleted', { 
+        detail: { weekNumber } 
+      }));
+    } catch (error) {
+      console.error('Error marking week as complete:', error);
+    } finally {
+      setIsMarkingComplete(false);
+    }
   };
 
   if (!weekData) {
@@ -243,11 +290,58 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
         </div>
       </motion.div>
 
+      {/* Completion Section */}
+      {isCompleted ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-green-50 border-2 border-green-200 rounded-xl p-6 md:p-8"
+        >
+          <div className="flex items-center gap-4">
+            <div className="bg-green-500 rounded-full p-2 flex-shrink-0">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-green-800">
+                {weekData.completionMessage?.title || 'Week Complete'}
+              </h3>
+            </div>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-xl shadow-lg p-6 md:p-8 border-2 border-gold/30"
+        >
+          <div className="text-center">
+            {!hasAllContent() && (
+              <p className="text-sm text-gray-600 mb-4">Complete all sections to finish this week.</p>
+            )}
+            <button
+              onClick={handleMarkComplete}
+              disabled={!hasAllContent() || isMarkingComplete}
+              className={`px-8 py-3 rounded-lg font-semibold transition-all duration-200 ${
+                hasAllContent() && !isMarkingComplete
+                  ? 'bg-gold text-navy hover:bg-yellow-500 shadow-lg hover:shadow-xl transform hover:scale-105'
+                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isMarkingComplete ? 'Marking Complete...' : 'Mark Week as Complete'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Study Instructions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
         className="bg-gradient-to-br from-gold/10 to-navy/5 rounded-xl p-6 md:p-8 border-2 border-gold/30"
       >
         <h3 className="text-xl font-bold text-navy mb-4">How to Use This Week's Study</h3>

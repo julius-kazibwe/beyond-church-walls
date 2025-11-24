@@ -216,6 +216,24 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     };
   }, [selectedWeek]);
 
+  // Listen for week completion events
+  useEffect(() => {
+    const handleWeekCompleted = async (e) => {
+      // Refresh progress when a week is completed
+      const updatedProgress = await getProgress();
+      setProgress(updatedProgress);
+      setCompletedWeeks(Array.isArray(updatedProgress?.completedWeeks) ? updatedProgress.completedWeeks : []);
+      const week = await getCurrentWeek();
+      setCurrentWeek(week);
+    };
+    
+    window.addEventListener('weekCompleted', handleWeekCompleted);
+    
+    return () => {
+      window.removeEventListener('weekCompleted', handleWeekCompleted);
+    };
+  }, []);
+
 
   const handleWeekSelect = (weekNum) => {
     if (!baselineCompleted) return; // Can't select weeks without baseline

@@ -159,7 +159,7 @@ const AboutBook = ({ onOpenWeeklyStudy }) => {
             >
               <div className="relative">
                 <img 
-                  src="/bookcover.jpeg" 
+                  src="/boo_kcover.jpeg" 
                   alt="Beyond Church Walls Book Cover" 
                   className="w-64 md:w-80 lg:w-96 rounded-lg shadow-2xl transform hover:scale-105 transition-transform duration-300"
                 />

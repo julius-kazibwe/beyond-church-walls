@@ -23,25 +23,13 @@ const Hero = () => {
             Inviting His Presence Every Day, Every Moment, Every Task
           </p>
           
-          {/* Mission and Vision */}
+          {/* Vision and Mission */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
             className="mt-12 mb-16 grid md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto"
           >
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 md:p-8 border border-white/20 hover:border-gold/50 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <svg className="w-8 h-8 text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="text-xl md:text-2xl font-bold text-gold">Our Mission</h3>
-              </div>
-              <p className="text-white/90 text-sm md:text-base leading-relaxed">
-                To equip and empower believers to manifest God's presence—everywhere, every moment, every task.
-              </p>
-            </div>
-            
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 md:p-8 border border-white/20 hover:border-gold/50 transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
                 <svg className="w-8 h-8 text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +40,18 @@ const Hero = () => {
               </div>
               <p className="text-white/90 text-sm md:text-base leading-relaxed">
                 Mobilize believers to manifest God's presence and bring Kingdom influence to every sphere of society.
+              </p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 md:p-8 border border-white/20 hover:border-gold/50 transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <svg className="w-8 h-8 text-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-xl md:text-2xl font-bold text-gold">Our Mission</h3>
+              </div>
+              <p className="text-white/90 text-sm md:text-base leading-relaxed">
+                To equip and empower believers to manifest God's presence—everywhere, every moment, every task.
               </p>
             </div>
           </motion.div>

@@ -73,6 +73,7 @@ async function syncUsers() {
           progress: {
             baselineFRIQ: userData.progress?.baselineFRIQ || null,
             weeklyAssessments: userData.progress?.assessments || {},
+            assessmentHistory: userData.progress?.assessmentHistory || [],
             reflections: userData.progress?.reflections || {},
             practicalApplications: userData.progress?.practicalApplications || {},
           },

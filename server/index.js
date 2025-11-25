@@ -802,6 +802,7 @@ app.get('/api/progress', authenticateToken, async (req, res) => {
         baselineFRIQ: null,
         completedWeeks: [],
         assessments: {},
+        assessmentHistory: [],
         currentWeek: 0,
         reflections: {},
         practicalApplications: {}
@@ -849,12 +850,35 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
       baselineFRIQ: null,
       completedWeeks: [],
       assessments: {},
+      assessmentHistory: [],
       currentWeek: 0,
       reflections: {},
       practicalApplications: {}
     };
 
     // Clean local progress to ensure it's plain objects
+    const HISTORY_LIMIT = 100;
+    const mergeAssessmentHistory = (serverHistory = [], localHistory = []) => {
+      const historyMap = new Map();
+      [...(serverHistory || []), ...(localHistory || [])].forEach((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return;
+        }
+        const completedAt = entry.completedAt || new Date().toISOString();
+        const type = entry.type || 'assessment';
+        const id = entry.id || `${type}-${completedAt}-${Math.random().toString(36).slice(2, 8)}`;
+        historyMap.set(id, {
+          ...entry,
+          id,
+          type,
+          completedAt,
+        });
+      });
+      return Array.from(historyMap.values())
+        .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
+        .slice(0, HISTORY_LIMIT);
+    };
+
     const cleanLocalProgress = (progress) => {
       if (!progress || typeof progress !== 'object') {
         return {
@@ -885,6 +909,9 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
         assessments: progress.assessments && typeof progress.assessments === 'object' && !(progress.assessments instanceof Map)
           ? progress.assessments 
           : {},
+      assessmentHistory: Array.isArray(progress.assessmentHistory)
+        ? progress.assessmentHistory
+        : [],
         currentWeek: typeof progress.currentWeek === 'number' ? progress.currentWeek : 0,
         reflections: progress.reflections && typeof progress.reflections === 'object' && !(progress.reflections instanceof Map)
           ? progress.reflections 
@@ -909,6 +936,10 @@ app.post('/api/progress/sync', authenticateToken, async (req, res) => {
       finalFRIQ: cleanedServer.finalFRIQ || cleanedLocal.finalFRIQ || cleanedServer.level3FRIQ || cleanedLocal.level3FRIQ || null,
       completedWeeks: [...new Set([...cleanedServer.completedWeeks, ...cleanedLocal.completedWeeks])].sort((a, b) => a - b),
       assessments: { ...cleanedLocal.assessments, ...cleanedServer.assessments },
+      assessmentHistory: mergeAssessmentHistory(
+        cleanedServer.assessmentHistory,
+        cleanedLocal.assessmentHistory
+      ),
       currentWeek: Math.max(cleanedServer.currentWeek || 0, cleanedLocal.currentWeek || 0),
       reflections: { ...cleanedLocal.reflections, ...cleanedServer.reflections },
       practicalApplications: { ...cleanedLocal.practicalApplications, ...cleanedServer.practicalApplications }

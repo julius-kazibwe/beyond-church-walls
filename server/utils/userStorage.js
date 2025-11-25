@@ -68,6 +68,7 @@ const createUser = async (email, password, name = '') => {
       baselineFRIQ: null,
       completedWeeks: [],
       assessments: {},
+      assessmentHistory: [],
       currentWeek: 0,
       reflections: {},
       practicalApplications: {}

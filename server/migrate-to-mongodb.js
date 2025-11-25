@@ -63,6 +63,7 @@ async function migrateUsers() {
         const mappedProgress = {
           baselineFRIQ: progress.baselineFRIQ || null,
           weeklyAssessments: progress.assessments || {},
+        assessmentHistory: progress.assessmentHistory || [],
           reflections: progress.reflections || {},
           practicalApplications: progress.practicalApplications || {},
         };

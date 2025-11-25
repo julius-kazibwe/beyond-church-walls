@@ -1,9 +1,62 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { API_ENDPOINTS } from '../config/api';
 import { authenticatedFetch } from '../utils/auth';
 import { getTotalWeeks } from '../utils/weeklyContent';
+
+const deriveAssessmentHistory = (progress) => {
+  if (!progress) {
+    return [];
+  }
+
+  if (Array.isArray(progress.assessmentHistory) && progress.assessmentHistory.length > 0) {
+    return [...progress.assessmentHistory].sort(
+      (a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0)
+    );
+  }
+
+  if (progress.assessments && typeof progress.assessments === 'object') {
+    return Object.entries(progress.assessments)
+      .map(([key, value = {}]) => {
+        const numericWeek = Number.isFinite(Number(key)) ? Number(key) : null;
+        let type = 'weekly';
+        let label = `Week ${numericWeek || key} Assessment`;
+
+        if (key === 'baseline') {
+          type = 'baseline';
+          label = 'Baseline Assessment';
+        } else if (key === 'level2') {
+          type = 'level2';
+          label = 'Level 2 Assessment';
+        } else if (key === 'level3') {
+          type = 'level3';
+          label = 'Level 3 Assessment';
+        }
+
+        return {
+          id: value.id || `${type}-${key}-${value.completedAt || Date.now()}`,
+          type,
+          label,
+          weekNumber:
+            typeof value.weekNumber === 'number'
+              ? value.weekNumber
+              : type === 'weekly'
+              ? numericWeek
+              : null,
+          FRIQ: typeof value.FRIQ === 'number' ? value.FRIQ : null,
+          impactLevel: value.impactLevel || '',
+          impactDescription: value.impactDescription || '',
+          weekTitle: value.weekTitle || '',
+          weekTheme: value.weekTheme || '',
+          completedAt: value.completedAt || new Date().toISOString(),
+        };
+      })
+      .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0));
+  }
+
+  return [];
+};
 
 const UserDashboard = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth();
@@ -104,7 +157,10 @@ const UserDashboard = ({ isOpen, onClose }) => {
         ...localProgress,
         reflections,
         studyAnswers,
-        practicalApplications
+        practicalApplications,
+        assessmentHistory: Array.isArray(localProgress.assessmentHistory)
+          ? localProgress.assessmentHistory
+          : []
       };
 
       const response = await authenticatedFetch(API_ENDPOINTS.PROGRESS_SYNC, {
@@ -141,6 +197,14 @@ const UserDashboard = ({ isOpen, onClose }) => {
 
   const completedWeeks = progress?.completedWeeks?.length || 0;
   const progressPercent = totalWeeks > 0 ? (completedWeeks / totalWeeks) * 100 : 0;
+  const assessmentHistory = useMemo(() => deriveAssessmentHistory(progress), [progress]);
+  const recentAssessmentHistory = assessmentHistory.slice(0, 10);
+  const historyTypeStyles = {
+    baseline: 'bg-purple-100 text-purple-800',
+    level2: 'bg-blue-100 text-blue-800',
+    level3: 'bg-green-100 text-green-800',
+    weekly: 'bg-gray-100 text-gray-800'
+  };
 
   return (
     <AnimatePresence>
@@ -256,30 +320,65 @@ const UserDashboard = ({ isOpen, onClose }) => {
                     </motion.div>
 
                     {/* Assessment History */}
-                    {progress?.assessments && Object.keys(progress.assessments).length > 0 && (
+                    {recentAssessmentHistory.length > 0 && (
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                         className="bg-white rounded-xl shadow-lg p-6 border border-gray-200"
                       >
-                        <h3 className="text-xl font-bold text-navy mb-4">Assessment History</h3>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold text-navy">Assessment History</h3>
+                          <span className="text-xs text-gray-500">
+                            Showing last {recentAssessmentHistory.length} {recentAssessmentHistory.length === 1 ? 'entry' : 'entries'}
+                          </span>
+                        </div>
                         <div className="space-y-3">
-                          {Object.entries(progress.assessments)
-                            .filter(([key]) => key !== 'baseline')
-                            .map(([week, assessment]) => (
-                              <div key={week} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div>
-                                  <div className="font-semibold text-navy">Week {week}</div>
-                                  <div className="text-sm text-gray-600">
-                                    Completed: {new Date(assessment.completedAt).toLocaleDateString()}
+                          {recentAssessmentHistory.map((entry) => {
+                            const badgeClass =
+                              historyTypeStyles[entry.type] || historyTypeStyles.weekly;
+                            return (
+                              <div
+                                key={entry.id}
+                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                              >
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span
+                                      className={`text-xs font-semibold px-3 py-1 rounded-full ${badgeClass}`}
+                                    >
+                                      {entry.type === 'baseline'
+                                        ? 'Baseline'
+                                        : entry.type === 'level2'
+                                        ? 'Level 2'
+                                        : entry.type === 'level3'
+                                        ? 'Level 3'
+                                        : entry.weekNumber
+                                        ? `Week ${entry.weekNumber}`
+                                        : 'Assessment'}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(entry.completedAt).toLocaleDateString()}
+                                    </span>
                                   </div>
+                                  <div className="font-semibold text-navy">
+                                    {entry.label}
+                                  </div>
+                                  {entry.impactLevel && (
+                                    <div className="text-xs text-gray-600">
+                                      {entry.impactLevel}
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="text-2xl font-bold text-navy">
-                                  {((assessment.FRIQ || 0) * 100).toFixed(0)}
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold text-navy">
+                                    {((entry.FRIQ || 0) * 100).toFixed(0)}
+                                  </div>
+                                  <div className="text-xs text-gray-500">FRIQ</div>
                                 </div>
                               </div>
-                            ))}
+                            );
+                          })}
                         </div>
                       </motion.div>
                     )}

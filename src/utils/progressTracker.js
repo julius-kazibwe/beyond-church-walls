@@ -4,6 +4,89 @@ import { isAuthenticated, authenticatedFetch } from './auth';
 import { API_ENDPOINTS } from '../config/api';
 
 const STORAGE_KEY = 'bcw_weekly_progress';
+const HISTORY_LIMIT = 100;
+
+const normalizeHistoryEntry = (entry = {}, fallbackType = 'assessment') => {
+  const normalizedType = entry.type || fallbackType || 'assessment';
+  const completedAt = entry.completedAt || new Date().toISOString();
+  return {
+    ...entry,
+    type: normalizedType,
+    completedAt,
+    id:
+      entry.id ||
+      `${normalizedType}-${completedAt}-${Math.random().toString(36).slice(2, 8)}`,
+  };
+};
+
+const buildHistoryFromAssessments = (assessments = {}) => {
+  if (!assessments || typeof assessments !== 'object') {
+    return [];
+  }
+
+  return Object.entries(assessments)
+    .map(([key, value = {}]) => {
+      const numericWeek = Number.isFinite(Number(key)) ? Number(key) : null;
+      let type = 'weekly';
+      let label = `Week ${numericWeek || key} Assessment`;
+
+      if (key === 'baseline') {
+        type = 'baseline';
+        label = 'Baseline Assessment';
+      } else if (key === 'level2') {
+        type = 'level2';
+        label = 'Level 2 Assessment';
+      } else if (key === 'level3') {
+        type = 'level3';
+        label = 'Level 3 Assessment';
+      }
+
+      return normalizeHistoryEntry(
+        {
+          id: value.id,
+          type,
+          label,
+          weekNumber:
+            typeof value.weekNumber === 'number'
+              ? value.weekNumber
+              : type === 'weekly'
+              ? numericWeek
+              : null,
+          FRIQ: typeof value.FRIQ === 'number' ? value.FRIQ : null,
+          impactLevel: value.impactLevel || '',
+          impactDescription: value.impactDescription || '',
+          dimensionScores: value.dimensionScores || {},
+          weekTitle: value.weekTitle || '',
+          weekTheme: value.weekTheme || '',
+          completedAt: value.completedAt || new Date().toISOString(),
+        },
+        type
+      );
+    })
+    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+};
+
+const addAssessmentHistoryEntry = (progress, entry) => {
+  if (!progress || !entry) {
+    return;
+  }
+
+  const normalizedEntry = normalizeHistoryEntry(entry);
+  const existingHistory = Array.isArray(progress.assessmentHistory)
+    ? progress.assessmentHistory
+    : [];
+
+  const historyMap = new Map();
+  [normalizedEntry, ...existingHistory].forEach((item) => {
+    if (!item) return;
+    const normalizedItem = normalizeHistoryEntry(item, item?.type || normalizedEntry.type);
+    historyMap.set(normalizedItem.id, normalizedItem);
+  });
+
+  progress.assessmentHistory = Array.from(historyMap.values())
+    .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+    .slice(0, HISTORY_LIMIT);
+};
 
 // Sync progress to backend if authenticated
 const syncToBackend = async (progress) => {
@@ -44,7 +127,10 @@ const syncToBackend = async (progress) => {
       ...progress,
       reflections,
       studyAnswers,
-      practicalApplications
+      practicalApplications,
+      assessmentHistory: Array.isArray(progress.assessmentHistory)
+        ? progress.assessmentHistory
+        : [],
     };
 
     const response = await authenticatedFetch(API_ENDPOINTS.PROGRESS, {
@@ -98,6 +184,7 @@ export const getProgress = async () => {
     baselineFRIQ: null,
     completedWeeks: [],
     assessments: {},
+    assessmentHistory: [],
     currentWeek: 0 // 0 means baseline not completed
   };
 
@@ -115,6 +202,9 @@ export const getProgress = async () => {
         assessments: backendProgress.assessments && typeof backendProgress.assessments === 'object'
           ? backendProgress.assessments
           : {},
+        assessmentHistory: Array.isArray(backendProgress.assessmentHistory)
+          ? backendProgress.assessmentHistory
+          : buildHistoryFromAssessments(backendProgress.assessments),
         reflections: backendProgress.reflections && typeof backendProgress.reflections === 'object'
           ? backendProgress.reflections
           : {},
@@ -163,7 +253,10 @@ export const getProgress = async () => {
           : [],
         assessments: parsed.assessments && typeof parsed.assessments === 'object'
           ? parsed.assessments
-          : {}
+          : {},
+        assessmentHistory: Array.isArray(parsed.assessmentHistory)
+          ? parsed.assessmentHistory
+          : buildHistoryFromAssessments(parsed.assessments)
       };
     }
     return defaultProgress;
@@ -200,6 +293,15 @@ export const saveBaselineAssessment = async (results) => {
   if (progress.currentWeek === 0) {
     progress.currentWeek = 1;
   }
+  addAssessmentHistoryEntry(progress, {
+    type: 'baseline',
+    label: 'Baseline Assessment',
+    FRIQ: results.FRIQ,
+    impactLevel: results.impactLevel,
+    impactDescription: results.impactDescription,
+    dimensionScores: results.dimensionScores,
+    completedAt: progress.assessments['baseline'].completedAt
+  });
   return await saveProgress(progress);
 };
 
@@ -236,6 +338,21 @@ export const saveAssessmentResult = async (weekNumber, results) => {
     }
   }
   
+  addAssessmentHistoryEntry(progress, {
+    type: 'weekly',
+    label: results.weekTitle
+      ? `${results.weekTitle} (Week ${weekNumber})`
+      : `Week ${weekNumber} Assessment`,
+    weekNumber,
+    FRIQ: results.FRIQ,
+    impactLevel: results.impactLevel,
+    impactDescription: results.impactDescription,
+    dimensionScores: results.dimensionScores,
+    weekTitle: results.weekTitle || '',
+    weekTheme: results.weekTheme || '',
+    completedAt: progress.assessments[weekNumber].completedAt
+  });
+
   return await saveProgress(progress);
 };
 
@@ -300,6 +417,16 @@ export const saveLevel2Assessment = async (results) => {
     ...results,
     completedAt: new Date().toISOString()
   };
+  addAssessmentHistoryEntry(progress, {
+    type: 'level2',
+    label: 'Level 2 Assessment',
+    FRIQ: results.FRIQ,
+    impactLevel: results.impactLevel,
+    impactDescription: results.impactDescription,
+    dimensionScores: results.dimensionScores,
+    level: results.level,
+    completedAt: progress.assessments['level2'].completedAt
+  });
   return await saveProgress(progress);
 };
 
@@ -328,6 +455,16 @@ export const saveLevel3Assessment = async (results) => {
     ...results,
     completedAt: new Date().toISOString()
   };
+  addAssessmentHistoryEntry(progress, {
+    type: 'level3',
+    label: 'Level 3 Assessment',
+    FRIQ: results.FRIQ,
+    impactLevel: results.impactLevel,
+    impactDescription: results.impactDescription,
+    dimensionScores: results.dimensionScores,
+    level: results.level,
+    completedAt: progress.assessments['level3'].completedAt
+  });
   return await saveProgress(progress);
 };
 

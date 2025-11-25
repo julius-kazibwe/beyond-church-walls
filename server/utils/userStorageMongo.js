@@ -160,6 +160,9 @@ const cleanProgressData = (progress) => {
     completedWeeks: Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [],
     currentWeek: typeof progress.currentWeek === 'number' ? progress.currentWeek : 0,
     assessments: assessments,
+    assessmentHistory: Array.isArray(progress.assessmentHistory)
+      ? progress.assessmentHistory
+      : [],
     reflections: mapToObject(progress.reflections || {}),
     practicalApplications: mapToObject(progress.practicalApplications || {}),
   };
@@ -192,6 +195,10 @@ const saveUserProgress = async (userId, progress) => {
     // Keep weeklyAssessments in sync for backward compatibility
     user.progress.weeklyAssessments = user.progress.assessments;
     
+    user.progress.assessmentHistory = Array.isArray(cleanedProgress.assessmentHistory)
+      ? cleanedProgress.assessmentHistory
+      : [];
+    
     user.progress.reflections = new Map();
     for (const [key, value] of Object.entries(cleanedProgress.reflections || {})) {
       user.progress.reflections.set(key, value);
@@ -216,6 +223,7 @@ const saveUserProgress = async (userId, progress) => {
       completedWeeks: cleanedProgress.completedWeeks,
       currentWeek: cleanedProgress.currentWeek,
       assessments: cleanedProgress.assessments,
+      assessmentHistory: cleanedProgress.assessmentHistory,
       reflections: cleanedProgress.reflections,
       practicalApplications: cleanedProgress.practicalApplications,
     };
@@ -250,6 +258,9 @@ const getUserProgress = async (userId) => {
       completedWeeks: progress.completedWeeks || [],
       assessments: assessments,
       currentWeek: progress.currentWeek || 0,
+      assessmentHistory: Array.isArray(progress.assessmentHistory)
+        ? progress.assessmentHistory.map((entry) => ({ ...entry }))
+        : [],
       reflections: mapToObject(progress.reflections || {}),
       practicalApplications: mapToObject(progress.practicalApplications || {}),
     };
@@ -296,6 +307,9 @@ const getAllUsers = async () => {
           completedWeeks: Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [],
           currentWeek: progress.currentWeek || 0,
           assessments: assessments,
+            assessmentHistory: Array.isArray(progress.assessmentHistory)
+              ? progress.assessmentHistory.map((entry) => ({ ...entry }))
+              : [],
           reflections: mapToObject(progress.reflections || {}),
           practicalApplications: mapToObject(progress.practicalApplications || {}),
         }

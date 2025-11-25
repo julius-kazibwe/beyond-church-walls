@@ -71,6 +71,14 @@ const userSchema = new mongoose.Schema({
       of: Object,
       default: {},
     },
+    assessmentHistory: {
+      type: [
+        {
+          type: Object,
+        },
+      ],
+      default: [],
+    },
     reflections: {
       type: Map,
       of: Object,

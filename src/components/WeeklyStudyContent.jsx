@@ -189,6 +189,23 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
         )}
       </motion.div>
 
+      {/* Study Instructions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="bg-gradient-to-br from-gold/10 to-navy/5 rounded-xl p-6 md:p-8 border-2 border-gold/30"
+      >
+        <h3 className="text-xl font-bold text-navy mb-4">How to Use This Week's Study</h3>
+        <ol className="space-y-3 text-gray-700 list-decimal list-inside">
+          <li>Read the Key Scripture and Summary</li>
+          <li>Answer the Study Questions thoughtfully (your answers are saved automatically)</li>
+          <li>Complete the Reflection/Discussion Questions (your answers are saved automatically)</li>
+          <li>Write your Practical Application (saved automatically)</li>
+          <li>Apply the principles to your work life throughout the week</li>
+        </ol>
+      </motion.div>
+
       {/* Study Questions */}
       {studyQuestions && studyQuestions.studyQuestions && studyQuestions.studyQuestions.length > 0 && (
         <motion.div
@@ -336,23 +353,6 @@ const WeeklyStudyContent = ({ weekNumber, weekData }) => {
           </div>
         </motion.div>
       )}
-
-      {/* Study Instructions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-gradient-to-br from-gold/10 to-navy/5 rounded-xl p-6 md:p-8 border-2 border-gold/30"
-      >
-        <h3 className="text-xl font-bold text-navy mb-4">How to Use This Week's Study</h3>
-        <ol className="space-y-3 text-gray-700 list-decimal list-inside">
-          <li>Read the Key Scripture and Summary</li>
-          <li>Answer the Study Questions thoughtfully (your answers are saved automatically)</li>
-          <li>Complete the Reflection/Discussion Questions (your answers are saved automatically)</li>
-          <li>Write your Practical Application (saved automatically)</li>
-          <li>Apply the principles to your work life throughout the week</li>
-        </ol>
-      </motion.div>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import WeeklyStudyContent from './WeeklyStudyContent';
 import WISEAssessmentModal from './WISEAssessmentModal';
+import { useAuth } from '../context/AuthContext';
 import { 
   getWeekData, 
   getTotalWeeks
@@ -23,6 +24,7 @@ import {
 } from '../utils/progressTracker';
 
 const WeeklyStudyProgram = ({ isOpen, onClose }) => {
+  const { user, loading: authLoading } = useAuth();
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [showBaselineAssessment, setShowBaselineAssessment] = useState(false);
   const [showLevel2Assessment, setShowLevel2Assessment] = useState(false);
@@ -132,6 +134,12 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   }, [selectedWeek]);
 
   const handleStartBaselineAssessment = () => {
+    // Check authentication first
+    if (!user && !authLoading) {
+      onClose();
+      window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+      return;
+    }
     setShowBaselineAssessment(true);
   };
 
@@ -150,6 +158,12 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   };
 
   const handleStartLevel2Assessment = () => {
+    // Check authentication first
+    if (!user && !authLoading) {
+      onClose();
+      window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+      return;
+    }
     setShowLevel2Assessment(true);
   };
 
@@ -164,6 +178,12 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   };
 
   const handleStartLevel3Assessment = () => {
+    // Check authentication first
+    if (!user && !authLoading) {
+      onClose();
+      window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+      return;
+    }
     setShowLevel3Assessment(true);
   };
 
@@ -260,41 +280,28 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
     {
       value: '2',
       title: 'Level 2 • Midpoint Assessment',
-      description: 'Re-check your FRIQ after Week 5 to measure how you are growing.',
-      available: baselineCompleted && currentWeek >= 5 && (canTakeLevel2Assessment || level2Completed),
+      description: 'Re-check your FRIQ to measure how you are growing.',
+      available: baselineCompleted,
       completed: level2Completed,
       score: formatFRIQScore(level2FRIQ),
       lockedReason: !baselineCompleted
         ? 'Complete Level 1 first.'
-        : currentWeek < 5
-        ? 'Unlocks when you reach Week 5.'
-        : !canTakeLevel2Assessment && !level2Completed
-        ? 'Unlocks after Week 5 is completed.'
         : '',
-      helperText: 'Shows how far you have come halfway through the study.',
-      activationWeek: 5,
+      helperText: 'Shows how far you have come in your journey.',
+      activationWeek: 0,
     },
     {
       value: '3',
       title: 'Level 3 • Final FRIQ Assessment',
-      description: 'Celebrate your transformation after Week 10 and capture your final score.',
-      available:
-        baselineCompleted &&
-        currentWeek >= 10 &&
-        (canTakeLevel3Assessment || level3Completed),
+      description: 'Celebrate your transformation and capture your final score.',
+      available: baselineCompleted,
       completed: level3Completed,
       score: formatFRIQScore(level3FRIQ),
       lockedReason: !baselineCompleted
         ? 'Complete Level 1 first.'
-        : currentWeek < 10
-        ? 'Unlocks when you reach Week 10.'
-        : !level2Completed
-        ? 'Finish Level 2 before taking the final assessment.'
-        : !canTakeLevel3Assessment && !level3Completed
-        ? 'Unlocks after Week 10 is completed.'
         : '',
-      helperText: 'Confirms your final FRIQ and the impact of the full journey.',
-      activationWeek: 10,
+      helperText: 'Confirms your final FRIQ and the impact of your journey.',
+      activationWeek: 0,
     },
   ];
 
@@ -316,6 +323,12 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
   };
 
   const handleAssessmentStart = () => {
+    // Check authentication first
+    if (!user && !authLoading) {
+      onClose();
+      window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+      return;
+    }
     if (!selectedAssessment?.available) return;
     if (selectedAssessmentLevel === '1') {
       handleStartBaselineAssessment();
@@ -328,9 +341,9 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
 
   const baselineUnlockedWeekValue = baselineCompleted ? String(selectedWeek) : '';
   const isLevel2AccessWindow =
-    baselineCompleted && currentWeek >= 5 && (canTakeLevel2Assessment || level2Completed);
+    baselineCompleted && !level2Completed;
   const isLevel3AccessWindow =
-    baselineCompleted && currentWeek >= 10 && (canTakeLevel3Assessment || level3Completed);
+    baselineCompleted && !level3Completed;
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -344,6 +357,7 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
       setSelectedAssessmentLevel('1');
       return;
     }
+    // Auto-select the first incomplete assessment, prioritizing Level 3, then Level 2
     if (isLevel3AccessWindow) {
       setSelectedAssessmentLevel('3');
       return;
@@ -352,6 +366,7 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
       setSelectedAssessmentLevel('2');
       return;
     }
+    // If all assessments are completed, default to Level 1
     setSelectedAssessmentLevel('1');
   }, [
     baselineCompleted,
@@ -405,7 +420,43 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
 
               {/* Content - Scrollable */}
               <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-gradient-to-br from-gold/10 via-white to-gold/10">
-                <div className="max-w-7xl mx-auto">
+                {/* Authentication Check */}
+                {!authLoading && !user ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-8 max-w-md">
+                      <svg className="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <h3 className="text-2xl font-bold text-navy mb-3">Sign In Required</h3>
+                      <p className="text-gray-700 mb-6">
+                        Please sign in to access the weekly study program and assessments.
+                      </p>
+                      <button
+                        onClick={() => {
+                          onClose();
+                          // Trigger login modal - this will be handled by App.jsx
+                          window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+                        }}
+                        className="w-full px-6 py-3 bg-navy text-white rounded-lg font-semibold hover:bg-blue-900 transition-colors"
+                      >
+                        Sign In
+                      </button>
+                      <p className="text-sm text-gray-600 mt-4">
+                        Don't have an account?{' '}
+                        <button
+                          onClick={() => {
+                            onClose();
+                            window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'signup' } }));
+                          }}
+                          className="text-navy font-semibold hover:underline"
+                        >
+                          Sign up
+                        </button>
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-7xl mx-auto">
 
                   {/* Quick Navigation */}
                   <motion.div
@@ -698,13 +749,19 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                               </p>
                               <p className="text-sm text-blue-600">
                                 {isLevel3AccessWindow && !level3Completed
-                                  ? 'Capture your final score now that you are in Week 10.'
-                                  : 'Measure your growth now that you have reached Week 5.'}
+                                  ? 'Capture your final score and see your transformation.'
+                                  : 'Measure your growth and track your progress.'}
                               </p>
                             </div>
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => {
+                                  // Check authentication first
+                                  if (!user && !authLoading) {
+                                    onClose();
+                                    window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+                                    return;
+                                  }
                                   const levelToStart = isLevel3AccessWindow && !level3Completed ? '3' : '2';
                                   setSelectedAssessmentLevel(levelToStart);
                                   setHasManualAssessmentSelection(true);
@@ -769,7 +826,8 @@ const WeeklyStudyProgram = ({ isOpen, onClose }) => {
                     </motion.div>
                   )}
 
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Baseline Assessment Modal (Level 1) */}

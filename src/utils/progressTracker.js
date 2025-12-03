@@ -408,7 +408,7 @@ export const getBaselineFRIQ = async () => {
   return progress.baselineFRIQ || null;
 };
 
-// Level 2 Assessment (after Week 5)
+// Level 2 Assessment (available after baseline)
 export const saveLevel2Assessment = async (results) => {
   const progress = await getProgress();
   progress.level2Completed = true;
@@ -445,7 +445,7 @@ export const getLevel2Assessment = async () => {
   return progress.assessments['level2'] || null;
 };
 
-// Level 3 Assessment (Final FRIQ - after Week 10)
+// Level 3 Assessment (Final FRIQ - available after baseline)
 export const saveLevel3Assessment = async (results) => {
   const progress = await getProgress();
   progress.level3Completed = true;
@@ -483,24 +483,18 @@ export const getLevel3Assessment = async () => {
   return progress.assessments['level3'] || null;
 };
 
-// Check if user has completed enough weeks to take Level 2 (after week 5)
+// Check if user has completed enough weeks to take Level 2 (available after baseline)
 export const canTakeLevel2 = async () => {
   const progress = await getProgress();
-  if (!progress.baselineCompleted) return false;
-  const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
-  const unlockedWeek = progress.currentWeek || 0;
-  // Allow when Week 5 is completed OR the user has reached Week 5 (currentWeek shows unlocked access)
-  return completedWeeks.includes(5) || unlockedWeek >= 5;
+  // Level 2 is now available as long as baseline is completed
+  return progress.baselineCompleted || false;
 };
 
-// Check if user has completed enough weeks to take Level 3 (after week 10)
+// Check if user has completed enough weeks to take Level 3 (available after baseline)
 export const canTakeLevel3 = async () => {
   const progress = await getProgress();
-  if (!progress.baselineCompleted) return false;
-  const completedWeeks = Array.isArray(progress.completedWeeks) ? progress.completedWeeks : [];
-  const unlockedWeek = progress.currentWeek || 0;
-  // Allow when Week 10 is completed OR the user has unlocked Week 10
-  return completedWeeks.includes(10) || unlockedWeek >= 10;
+  // Level 3 is now available as long as baseline is completed
+  return progress.baselineCompleted || false;
 };
 
 export const resetProgress = () => {

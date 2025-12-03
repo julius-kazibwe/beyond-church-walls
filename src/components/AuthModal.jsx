@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
-const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
+const AuthModal = ({ isOpen, onClose, initialMode = 'login', onLoginSuccess }) => {
   const [mode, setMode] = useState(initialMode); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,6 +34,10 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         setEmail('');
         setPassword('');
         setName('');
+        // Call onLoginSuccess callback if provided
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
       } else {
         setError(result.error || 'An error occurred');
       }

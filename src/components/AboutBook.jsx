@@ -4,8 +4,10 @@ import { API_ENDPOINTS } from '../config/api';
 import SecurePDFViewer from './SecurePDFViewer';
 import WISEAssessmentModal from './WISEAssessmentModal';
 import { saveBaselineAssessment } from '../utils/progressTracker';
+import { useAuth } from '../context/AuthContext';
 
 const AboutBook = ({ onOpenWeeklyStudy }) => {
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -159,7 +161,7 @@ const AboutBook = ({ onOpenWeeklyStudy }) => {
             >
               <div className="relative">
                 <img 
-                  src="/book_cover2.jpeg" 
+                  src="/book%20cover.jpeg" 
                   alt="Beyond Church Walls Book Cover" 
                   className="w-64 md:w-80 lg:w-96 rounded-lg shadow-2xl transform hover:scale-105 transition-transform duration-300"
                   style={{
@@ -348,7 +350,14 @@ const AboutBook = ({ onOpenWeeklyStudy }) => {
                   Assess your faith integration at work with the WISE Framework and discover your Faith Relevance Index Quotient (FRIQ)
                 </p>
                 <button
-                  onClick={() => setShowWISEModal(true)}
+                  onClick={() => {
+                    // Check authentication first
+                    if (!user && !authLoading) {
+                      window.dispatchEvent(new CustomEvent('openAuthModal', { detail: { mode: 'login' } }));
+                      return;
+                    }
+                    setShowWISEModal(true);
+                  }}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-navy text-white font-semibold rounded-lg hover:bg-blue-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

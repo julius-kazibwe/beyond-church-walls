@@ -11,17 +11,56 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import UserDashboard from './components/UserDashboard';
 import AdminPage from './pages/AdminPage';
+import { useAuth } from './context/AuthContext';
 
 function App() {
+  const { user, loading } = useAuth();
   const [showWeeklyStudy, setShowWeeklyStudy] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showDashboard, setShowDashboard] = useState(false);
   const [isAdminPage, setIsAdminPage] = useState(false);
+  const [pendingWeeklyStudyAccess, setPendingWeeklyStudyAccess] = useState(false);
+
+  // Handler to open weekly study - requires authentication
+  const handleOpenWeeklyStudy = () => {
+    if (!user && !loading) {
+      // User not logged in, prompt login
+      setAuthMode('login');
+      setShowAuthModal(true);
+      setPendingWeeklyStudyAccess(true);
+      return;
+    }
+    // User is authenticated, open weekly study
+    if (user) {
+      setShowWeeklyStudy(true);
+      setPendingWeeklyStudyAccess(false);
+    }
+  };
+
+  // Open weekly study after successful login
+  useEffect(() => {
+    if (user && pendingWeeklyStudyAccess) {
+      setShowWeeklyStudy(true);
+      setPendingWeeklyStudyAccess(false);
+      setShowAuthModal(false);
+    }
+  }, [user, pendingWeeklyStudyAccess]);
 
   useEffect(() => {
     // Check if we're on the admin page
     setIsAdminPage(window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin'));
+    
+    // Listen for custom event to open auth modal
+    const handleOpenAuthModal = (event) => {
+      setAuthMode(event.detail.mode || 'login');
+      setShowAuthModal(true);
+    };
+    
+    window.addEventListener('openAuthModal', handleOpenAuthModal);
+    return () => {
+      window.removeEventListener('openAuthModal', handleOpenAuthModal);
+    };
   }, []);
 
   // Render admin page if on /admin route
@@ -32,7 +71,7 @@ function App() {
   return (
     <div className="App">
       <Navigation 
-        onOpenWeeklyStudy={() => setShowWeeklyStudy(true)}
+        onOpenWeeklyStudy={handleOpenWeeklyStudy}
         onOpenAuth={(mode) => {
           setAuthMode(mode || 'login');
           setShowAuthModal(true);
@@ -40,7 +79,7 @@ function App() {
         onOpenDashboard={() => setShowDashboard(true)}
       />
       <Hero />
-      <AboutBook onOpenWeeklyStudy={() => setShowWeeklyStudy(true)} />
+      <AboutBook onOpenWeeklyStudy={handleOpenWeeklyStudy} />
       <AboutAuthor />
       <Endorsements />
       <JoinMission />
@@ -52,8 +91,14 @@ function App() {
       />
       <AuthModal 
         isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingWeeklyStudyAccess(false);
+        }}
         initialMode={authMode}
+        onLoginSuccess={() => {
+          // The useEffect will handle opening weekly study after login
+        }}
       />
       <UserDashboard
         isOpen={showDashboard}

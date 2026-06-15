@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import UserDashboard from './components/UserDashboard';
 import AdminPage from './pages/AdminPage';
+import MarketplacePledgePage from './pages/MarketplacePledgePage';
 import { useAuth } from './context/AuthContext';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [showDashboard, setShowDashboard] = useState(false);
   const [isAdminPage, setIsAdminPage] = useState(false);
+  const [isMarketplacePledgePage, setIsMarketplacePledgePage] = useState(false);
   const [pendingWeeklyStudyAccess, setPendingWeeklyStudyAccess] = useState(false);
 
   // Handler to open weekly study - requires authentication
@@ -48,8 +50,9 @@ function App() {
   }, [user, pendingWeeklyStudyAccess]);
 
   useEffect(() => {
-    // Check if we're on the admin page
-    setIsAdminPage(window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin'));
+    const path = window.location.pathname;
+    setIsAdminPage(path === '/admin' || path.startsWith('/admin'));
+    setIsMarketplacePledgePage(path === '/marketplace-pledge');
     
     // Listen for custom event to open auth modal
     const handleOpenAuthModal = (event) => {
@@ -63,9 +66,12 @@ function App() {
     };
   }, []);
 
-  // Render admin page if on /admin route
   if (isAdminPage) {
     return <AdminPage />;
+  }
+
+  if (isMarketplacePledgePage) {
+    return <MarketplacePledgePage />;
   }
 
   return (

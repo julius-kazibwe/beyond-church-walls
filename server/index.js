@@ -284,7 +284,7 @@ app.get('/api/health', (req, res) => {
 // Email signup (Join Mission)
 app.post('/api/email-signup', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, source } = req.body;
 
     // Validate email
     if (!email || typeof email !== 'string') {
@@ -296,8 +296,13 @@ app.post('/api/email-signup', async (req, res) => {
       return res.status(400).json({ error: 'Valid email is required' });
     }
 
+    const signupData = { email: trimmedEmail };
+    if (source && typeof source === 'string') {
+      signupData.source = source.trim().slice(0, 100);
+    }
+
     // Save submission
-    await saveSubmission('email-signup', { email: trimmedEmail });
+    await saveSubmission('email-signup', signupData);
 
     // Send confirmation email to user
     const userEmailHtml = `
@@ -327,6 +332,7 @@ app.post('/api/email-signup', async (req, res) => {
     const adminEmailHtml = `
       <h3>New Email Signup</h3>
       <p><strong>Email:</strong> ${sanitizeHtml(trimmedEmail)}</p>
+      ${signupData.source ? `<p><strong>Source:</strong> ${sanitizeHtml(signupData.source)}</p>` : ''}
       <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
     `;
 

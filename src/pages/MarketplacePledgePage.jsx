@@ -223,7 +223,7 @@ const MarketplacePledgePage = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs sm:text-sm font-semibold uppercase tracking-widest mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              Chapter 9 · The Harvest
+              Steward Your Growth
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight mb-5">

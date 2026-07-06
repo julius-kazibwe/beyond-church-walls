@@ -11,7 +11,7 @@ import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import UserDashboard from './components/UserDashboard';
 import AdminPage from './pages/AdminPage';
-import MarketplacePledgePage from './pages/MarketplacePledgePage';
+import MonitorYourGrowthPage from './pages/MonitorYourGrowthPage';
 import { useAuth } from './context/AuthContext';
 
 function App() {
@@ -22,6 +22,7 @@ function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [isAdminPage, setIsAdminPage] = useState(false);
   const [isMarketplacePledgePage, setIsMarketplacePledgePage] = useState(false);
+  const [isMonitorYourGrowthPage, setIsMonitorYourGrowthPage] = useState(false);
   const [pendingWeeklyStudyAccess, setPendingWeeklyStudyAccess] = useState(false);
 
   // Handler to open weekly study - requires authentication
@@ -53,6 +54,7 @@ function App() {
     const path = window.location.pathname;
     setIsAdminPage(path === '/admin' || path.startsWith('/admin'));
     setIsMarketplacePledgePage(path === '/marketplace-pledge');
+    setIsMonitorYourGrowthPage(path === '/monitor-your-growth');
     
     // Listen for custom event to open auth modal
     const handleOpenAuthModal = (event) => {
@@ -70,8 +72,12 @@ function App() {
     return <AdminPage />;
   }
 
+  if (isMonitorYourGrowthPage) {
+    return <MonitorYourGrowthPage />;
+  }
+
   if (isMarketplacePledgePage) {
-    return <MarketplacePledgePage />;
+    return <MonitorYourGrowthPage scrollToPledge />;
   }
 
   return (

@@ -1337,7 +1337,7 @@ app.delete('/api/admin/growth-videos/:id', authenticateAdmin, async (req, res) =
     });
   } catch (error) {
     console.error('Error deleting growth video:', error);
-    const status = error.message && error.message.includes('not found') ? 404 : 500;
+    const status = error.message && error.message.includes('not found') ? 404 : 400;
     res.status(status).json({ error: error.message || 'Failed to delete growth video' });
   }
 });

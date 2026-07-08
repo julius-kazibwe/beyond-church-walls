@@ -48,7 +48,12 @@ const getPublishedGrowthVideos = async () => {
 
 const addGrowthVideo = async (videoData) => {
   if (getConnectionStatus()) {
-    const fields = await growthVideoStorage.buildVideoFieldsWithMetadata(videoData);
+    const existingVideos = await getAllGrowthVideos();
+    const fields = await growthVideoStorage.validateGrowthVideoWrite({
+      videoData,
+      existingVideos,
+      operation: 'create',
+    });
     const video = new GrowthVideo(fields);
     await video.save();
     return mapVideo(video);
@@ -61,22 +66,31 @@ const updateGrowthVideo = async (id, updates) => {
     const existing = await GrowthVideo.findById(id);
     if (!existing) throw new Error('Growth video not found');
 
+    const existingVideos = await getAllGrowthVideos();
+    const existingRecord = existingVideos.find((video) => video.id === id);
+
     const merged = {
       url: updates.url !== undefined ? updates.url : existing.url,
       youtubeId: updates.youtubeId !== undefined ? updates.youtubeId : existing.youtubeId,
       title: updates.title !== undefined ? updates.title : existing.title,
       category: updates.category !== undefined ? updates.category : existing.category,
       categoryLabel: updates.categoryLabel !== undefined ? updates.categoryLabel : existing.categoryLabel,
-      featured: updates.featured !== undefined ? updates.featured : existing.featured,
       sortOrder: updates.sortOrder !== undefined ? updates.sortOrder : existing.sortOrder,
       published: updates.published !== undefined ? updates.published : existing.published,
     };
 
-    const fields = await growthVideoStorage.buildVideoFieldsWithMetadata(merged);
+    const fields = await growthVideoStorage.validateGrowthVideoWrite({
+      videoData: merged,
+      existingVideos,
+      excludeId: id,
+      existingRecord: existingRecord || mapVideo(existing),
+      operation: 'update',
+    });
+
     const video = await GrowthVideo.findByIdAndUpdate(
       id,
       { ...fields, updatedAt: new Date() },
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (!video) throw new Error('Growth video not found');
     return mapVideo(video);
@@ -86,8 +100,19 @@ const updateGrowthVideo = async (id, updates) => {
 
 const deleteGrowthVideo = async (id) => {
   if (getConnectionStatus()) {
-    const video = await GrowthVideo.findByIdAndDelete(id);
-    if (!video) throw new Error('Growth video not found');
+    const existing = await GrowthVideo.findById(id);
+    if (!existing) throw new Error('Growth video not found');
+
+    const existingVideos = await getAllGrowthVideos();
+    const existingRecord = existingVideos.find((video) => video.id === id) || mapVideo(existing);
+
+    await growthVideoStorage.validateGrowthVideoWrite({
+      existingVideos,
+      existingRecord,
+      operation: 'delete',
+    });
+
+    await GrowthVideo.findByIdAndDelete(id);
     return;
   }
   return growthVideoStorage.deleteGrowthVideo(id);

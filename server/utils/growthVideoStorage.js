@@ -3,6 +3,8 @@ const path = require('path');
 
 const growthVideoFile = path.join(__dirname, '..', 'data', 'growth-videos.json');
 
+const VALID_CATEGORIES = ['df-dscore', 'pledge', 'general'];
+
 const CATEGORY_LABELS = {
   'df-dscore': 'DF & D-Score',
   pledge: 'Marketplace Pledge',
@@ -30,6 +32,35 @@ const extractYouTubeId = (input) => {
   return null;
 };
 
+const isAllowedYouTubeUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+
+  try {
+    const parsed = new URL(url.trim());
+    const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    return host === 'youtube.com' || host === 'youtu.be' || host === 'm.youtube.com';
+  } catch {
+    return false;
+  }
+};
+
+const assertAllowedYouTubeInput = (url, youtubeId) => {
+  if (url && !isAllowedYouTubeUrl(url)) {
+    throw new Error('Only youtube.com and youtu.be links are allowed');
+  }
+
+  const id = youtubeId || extractYouTubeId(url);
+  if (!id) {
+    throw new Error('A valid YouTube URL or video ID is required');
+  }
+
+  if (url && extractYouTubeId(url) !== id && youtubeId && extractYouTubeId(url)) {
+    throw new Error('YouTube URL and video ID do not match');
+  }
+
+  return id;
+};
+
 const getYouTubeThumbnail = (youtubeId, quality = 'hqdefault') =>
   `https://i.ytimg.com/vi/${youtubeId}/${quality}.jpg`;
 
@@ -49,14 +80,60 @@ const fetchYouTubeMetadata = async (url) => {
   }
 };
 
-const buildVideoFields = ({ url, youtubeId, title, category, categoryLabel, featured, sortOrder, published }) => {
-  const id = youtubeId || extractYouTubeId(url);
-  if (!id) {
-    throw new Error('A valid YouTube URL or video ID is required');
+const assertValidCategory = (category) => {
+  if (!VALID_CATEGORIES.includes(category)) {
+    throw new Error('Invalid category. Use df-dscore, pledge, or general.');
+  }
+};
+
+const assertNoDuplicateYoutubeId = (videos, youtubeId, excludeId = null) => {
+  const duplicate = videos.find(
+    (video) => video.youtubeId === youtubeId && video.id !== excludeId
+  );
+  if (duplicate) {
+    throw new Error('A video with this YouTube ID already exists');
+  }
+};
+
+const assertDfDscoreRules = ({ videos, fields, excludeId = null, existingRecord = null, operation }) => {
+  if (operation === 'delete') {
+    if (existingRecord?.category === 'df-dscore') {
+      throw new Error(
+        'Cannot delete the DF & D-Score video. Edit it in place or change its category after assigning a replacement.'
+      );
+    }
+    return;
   }
 
+  const otherDfDscore = videos.find(
+    (video) => video.category === 'df-dscore' && video.id !== excludeId
+  );
+
+  if (fields.category === 'df-dscore' && otherDfDscore) {
+    throw new Error(
+      'Only one DF & D-Score video is allowed. Edit the existing one or change its category first.'
+    );
+  }
+
+  if (existingRecord?.category === 'df-dscore') {
+    if (fields.category !== 'df-dscore') {
+      throw new Error(
+        'Cannot change the DF & D-Score video category without a replacement. Edit the video in place instead.'
+      );
+    }
+    if (fields.published === false) {
+      throw new Error('The DF & D-Score video cannot be unpublished.');
+    }
+  }
+};
+
+const buildVideoFields = ({ url, youtubeId, title, category, categoryLabel, sortOrder, published }) => {
+  const id = assertAllowedYouTubeInput(url, youtubeId);
+
   const resolvedCategory = category || 'general';
-  const resolvedUrl = url && url.includes(id) ? url : `https://www.youtube.com/watch?v=${id}`;
+  assertValidCategory(resolvedCategory);
+
+  const resolvedUrl = url && url.includes(id) ? url.trim() : `https://www.youtube.com/watch?v=${id}`;
 
   return {
     youtubeId: id,
@@ -75,16 +152,67 @@ const buildVideoFields = ({ url, youtubeId, title, category, categoryLabel, feat
 const buildVideoFieldsWithMetadata = async (videoData) => {
   const fields = buildVideoFields(videoData);
   const metadata = await fetchYouTubeMetadata(fields.url);
-  if (metadata) {
-    if (!videoData.title?.trim() && metadata.title) {
-      fields.title = metadata.title;
-    }
-    if (metadata.thumbnail) {
-      fields.thumbnail = metadata.thumbnail;
-      fields.thumbnailFallback = metadata.thumbnail;
-    }
+
+  if (!metadata) {
+    throw new Error(
+      'This YouTube video could not be verified. Check that the link is correct and the video is public.'
+    );
   }
+
+  if (!videoData.title?.trim() && metadata.title) {
+    fields.title = metadata.title;
+  }
+  if (metadata.thumbnail) {
+    fields.thumbnail = metadata.thumbnail;
+    fields.thumbnailFallback = metadata.thumbnail;
+  }
+
   return fields;
+};
+
+const hasUrlOrIdChanged = (videoData, existingRecord) => {
+  if (!existingRecord) return true;
+
+  const nextId = assertAllowedYouTubeInput(
+    videoData.url !== undefined ? videoData.url : existingRecord.url,
+    videoData.youtubeId !== undefined ? videoData.youtubeId : existingRecord.youtubeId
+  );
+
+  return nextId !== existingRecord.youtubeId
+    || (videoData.url !== undefined && videoData.url.trim() !== existingRecord.url);
+};
+
+const validateGrowthVideoWrite = async ({
+  videoData,
+  existingVideos,
+  excludeId = null,
+  existingRecord = null,
+  operation = 'create',
+}) => {
+  if (operation === 'delete') {
+    assertDfDscoreRules({ videos: existingVideos, existingRecord, operation: 'delete' });
+    return null;
+  }
+
+  const preliminaryFields = buildVideoFields(videoData);
+  assertNoDuplicateYoutubeId(existingVideos, preliminaryFields.youtubeId, excludeId);
+  assertDfDscoreRules({
+    videos: existingVideos,
+    fields: preliminaryFields,
+    excludeId,
+    existingRecord,
+    operation,
+  });
+
+  if (operation === 'create' || hasUrlOrIdChanged(videoData, existingRecord)) {
+    return buildVideoFieldsWithMetadata(videoData);
+  }
+
+  return {
+    ...preliminaryFields,
+    thumbnail: existingRecord.thumbnail,
+    thumbnailFallback: existingRecord.thumbnailFallback,
+  };
 };
 
 const ensureGrowthVideoFile = async () => {
@@ -113,8 +241,12 @@ const getPublishedGrowthVideos = async () => {
 
 const addGrowthVideo = async (videoData) => {
   await ensureGrowthVideoFile();
-  const fields = await buildVideoFieldsWithMetadata(videoData);
   const all = await getAllGrowthVideos();
+  const fields = await validateGrowthVideoWrite({
+    videoData,
+    existingVideos: all,
+    operation: 'create',
+  });
 
   const video = {
     id: Date.now().toString(),
@@ -134,14 +266,27 @@ const updateGrowthVideo = async (id, updates) => {
   const index = all.findIndex((v) => v.id === id);
   if (index === -1) return null;
 
+  const existing = all[index];
   const merged = {
-    ...all[index],
+    ...existing,
     ...updates,
-    url: updates.url !== undefined ? updates.url : all[index].url,
-    youtubeId: updates.youtubeId !== undefined ? updates.youtubeId : all[index].youtubeId,
+    url: updates.url !== undefined ? updates.url : existing.url,
+    youtubeId: updates.youtubeId !== undefined ? updates.youtubeId : existing.youtubeId,
+    title: updates.title !== undefined ? updates.title : existing.title,
+    category: updates.category !== undefined ? updates.category : existing.category,
+    categoryLabel: updates.categoryLabel !== undefined ? updates.categoryLabel : existing.categoryLabel,
+    sortOrder: updates.sortOrder !== undefined ? updates.sortOrder : existing.sortOrder,
+    published: updates.published !== undefined ? updates.published : existing.published,
   };
 
-  const fields = await buildVideoFieldsWithMetadata(merged);
+  const fields = await validateGrowthVideoWrite({
+    videoData: merged,
+    existingVideos: all,
+    excludeId: id,
+    existingRecord: existing,
+    operation: 'update',
+  });
+
   all[index] = {
     ...all[index],
     ...fields,
@@ -155,17 +300,31 @@ const updateGrowthVideo = async (id, updates) => {
 const deleteGrowthVideo = async (id) => {
   await ensureGrowthVideoFile();
   const all = await getAllGrowthVideos();
+  const existing = all.find((v) => v.id === id);
+  if (!existing) {
+    throw new Error('Growth video not found');
+  }
+
+  await validateGrowthVideoWrite({
+    existingVideos: all,
+    existingRecord: existing,
+    operation: 'delete',
+  });
+
   const filtered = all.filter((v) => v.id !== id);
   await fs.writeFile(growthVideoFile, JSON.stringify(filtered, null, 2));
   return true;
 };
 
 module.exports = {
+  VALID_CATEGORIES,
   extractYouTubeId,
+  isAllowedYouTubeUrl,
   getYouTubeThumbnail,
   fetchYouTubeMetadata,
   buildVideoFields,
   buildVideoFieldsWithMetadata,
+  validateGrowthVideoWrite,
   CATEGORY_LABELS,
   getAllGrowthVideos,
   getPublishedGrowthVideos,

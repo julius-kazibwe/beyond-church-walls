@@ -1,12 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { extractYouTubeId, getYouTubeThumbnail, YOUTUBE_THUMB_QUALITIES } from '../utils/youtubeThumbnail';
 
 const YouTubeVideoCard = ({ video, featured = false }) => {
-  const [imgSrc, setImgSrc] = useState(video.thumbnail);
+  const youtubeId = useMemo(
+    () => video.youtubeId || extractYouTubeId(video.url) || extractYouTubeId(video.id),
+    [video.youtubeId, video.url, video.id]
+  );
+
+  const [qualityIndex, setQualityIndex] = useState(0);
   const [imgFailed, setImgFailed] = useState(false);
 
+  useEffect(() => {
+    setQualityIndex(0);
+    setImgFailed(false);
+  }, [youtubeId]);
+
+  const imgSrc = youtubeId
+    ? getYouTubeThumbnail(youtubeId, YOUTUBE_THUMB_QUALITIES[qualityIndex])
+    : '';
+
   const handleImageError = () => {
-    if (video.thumbnailFallback && imgSrc !== video.thumbnailFallback) {
-      setImgSrc(video.thumbnailFallback);
+    if (qualityIndex < YOUTUBE_THUMB_QUALITIES.length - 1) {
+      setQualityIndex((prev) => prev + 1);
       return;
     }
     setImgFailed(true);
@@ -22,7 +37,7 @@ const YouTubeVideoCard = ({ video, featured = false }) => {
       }`}
     >
       <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-navy via-blue-900 to-navy">
-        {!imgFailed ? (
+        {youtubeId && !imgFailed ? (
           <img
             src={imgSrc}
             alt={video.title}
@@ -33,7 +48,7 @@ const YouTubeVideoCard = ({ video, featured = false }) => {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
             <div className="w-14 h-14 rounded-full bg-gold/20 border border-gold/40 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-gold ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-gold" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
@@ -42,7 +57,7 @@ const YouTubeVideoCard = ({ video, featured = false }) => {
         )}
         <div className="absolute inset-0 bg-navy/20 group-hover:bg-navy/10 transition-colors flex items-center justify-center pointer-events-none">
           <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>

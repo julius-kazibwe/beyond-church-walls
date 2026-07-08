@@ -7,8 +7,7 @@ import {
   PLEDGE_PDF_FILENAME,
   PLEDGE_PREVIEW_URL,
   YOUTUBE_CHANNEL_URL,
-  growthVideos,
-  dfDScoreVideo,
+  growthVideos as fallbackGrowthVideos,
 } from '../data/growthResources';
 
 const fadeUp = {
@@ -30,6 +29,30 @@ const MonitorYourGrowthPage = ({ scrollToPledge = false }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [growthVideos, setGrowthVideos] = useState(fallbackGrowthVideos);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadVideos = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.GROWTH_VIDEOS);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled && Array.isArray(data.videos)) {
+          setGrowthVideos(data.videos);
+        }
+      } catch {
+        // Keep hardcoded fallback videos if API is unavailable
+      }
+    };
+    loadVideos();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dfDScoreVideo = growthVideos.find((v) => v.category === 'df-dscore');
+  const watchVideos = growthVideos.filter((v) => v.category !== 'df-dscore');
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -226,7 +249,7 @@ const MonitorYourGrowthPage = ({ scrollToPledge = false }) => {
           </motion.div>
 
           <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {growthVideos.map((video) => (
+            {watchVideos.map((video) => (
               <motion.div key={video.id} {...fadeUp}>
                 <YouTubeVideoCard video={video} />
               </motion.div>
@@ -336,10 +359,49 @@ const MonitorYourGrowthPage = ({ scrollToPledge = false }) => {
                   </svg>
                   Download Pledge Card (PDF)
                 </a>
-                <p className="text-center text-xs sm:text-sm text-gray-500">
-                  Instant download — no signup required
-                </p>
+
+                <a
+                  href={PLEDGE_PDF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-6 py-3 border-2 border-navy/15 text-navy rounded-xl font-semibold text-sm hover:border-gold hover:text-navy hover:bg-gold/5 transition-all duration-200"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  Open in browser instead
+                </a>
               </div>
+
+              <p className="mt-5 text-center text-xs sm:text-sm text-gray-500 leading-relaxed">
+                Tip: For best results, print on heavier stock paper or take the file to a local
+                print shop for a professional finish.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            {...fadeUp}
+            className="max-w-2xl mx-auto mt-6 flex items-start gap-4 p-5 rounded-xl bg-navy/5 border border-navy/10"
+          >
+            <img
+              src="/book cover.jpeg"
+              alt="Beyond Church Walls book cover"
+              className="w-20 sm:w-24 rounded-lg shadow-md flex-shrink-0 object-cover"
+            />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gold mb-1">
+                From the book
+              </p>
+              <p className="font-bold text-navy leading-snug mb-1">
+                Beyond Church Walls: Where Work and Worship Intersect
+              </p>
+              <p className="text-sm text-gray-600">Rev. John William Kasirye</p>
             </div>
           </motion.div>
         </div>

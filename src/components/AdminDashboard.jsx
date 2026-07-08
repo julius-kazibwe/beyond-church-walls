@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { API_ENDPOINTS } from '../config/api';
 import { adminAuthenticatedFetch, clearAdminAuth, getAdmin } from '../utils/adminAuth';
+import { extractYouTubeId, getYouTubeThumbnail } from '../utils/youtubeThumbnail';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -15,6 +16,8 @@ const AdminDashboard = () => {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [endorsements, setEndorsements] = useState([]);
   const [editingEndorsement, setEditingEndorsement] = useState(null);
+  const [growthVideos, setGrowthVideos] = useState([]);
+  const [editingGrowthVideo, setEditingGrowthVideo] = useState(null);
   const [siteSettings, setSiteSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [admin, setAdmin] = useState(null);
@@ -32,6 +35,7 @@ const AdminDashboard = () => {
     if (activeTab === 'users') loadUsers();
     if (activeTab === 'weekly-content') loadWeeklyContent();
     if (activeTab === 'endorsements') loadEndorsements();
+    if (activeTab === 'growth-videos') loadGrowthVideos();
     if (activeTab === 'settings') loadSiteSettings();
   }, [activeTab]);
 
@@ -230,6 +234,58 @@ const AdminDashboard = () => {
     }
   };
 
+  const loadGrowthVideos = async () => {
+    try {
+      const response = await adminAuthenticatedFetch(API_ENDPOINTS.ADMIN_GROWTH_VIDEOS);
+      if (response.ok) {
+        const data = await response.json();
+        const videos = data.videos || [];
+        videos.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        setGrowthVideos(videos);
+      } else {
+        console.error('Error loading growth videos:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading growth videos:', error);
+    }
+  };
+
+  const saveGrowthVideo = async (id, updates) => {
+    try {
+      const response = await adminAuthenticatedFetch(API_ENDPOINTS.ADMIN_GROWTH_VIDEO(id), {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      if (response.ok) {
+        await loadGrowthVideos();
+        setEditingGrowthVideo(null);
+        return { success: true };
+      }
+      const data = await response.json();
+      return { success: false, error: data.error || 'Failed to save' };
+    } catch {
+      return { success: false, error: 'Failed to save growth video' };
+    }
+  };
+
+  const deleteGrowthVideo = async (id) => {
+    if (!confirm('Are you sure you want to remove this video from Monitor Your Growth?')) return;
+    try {
+      const response = await adminAuthenticatedFetch(API_ENDPOINTS.ADMIN_GROWTH_VIDEO(id), {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        await loadGrowthVideos();
+        if (editingGrowthVideo === id) {
+          setEditingGrowthVideo(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting growth video:', error);
+      alert('Failed to delete growth video');
+    }
+  };
+
   const loadSiteSettings = async () => {
     try {
       const response = await adminAuthenticatedFetch(API_ENDPOINTS.ADMIN_SITE_SETTINGS);
@@ -362,6 +418,7 @@ const AdminDashboard = () => {
     { id: 'overview', name: 'Overview' },
     { id: 'weekly-content', name: 'Weekly Study' },
     { id: 'endorsements', name: 'Endorsements' },
+    { id: 'growth-videos', name: 'Growth Videos' },
     { id: 'settings', name: 'Settings' },
     { id: 'signups', name: 'Email Signups' },
     { id: 'preorders', name: 'Pre-Orders' },
@@ -548,6 +605,17 @@ const AdminDashboard = () => {
             onApprove={approveEndorsement}
             onDelete={deleteEndorsement}
             onLoad={loadEndorsements}
+          />
+        )}
+
+        {activeTab === 'growth-videos' && (
+          <GrowthVideosManager
+            videos={growthVideos}
+            editingVideo={editingGrowthVideo}
+            onSelectVideo={setEditingGrowthVideo}
+            onSave={saveGrowthVideo}
+            onDelete={deleteGrowthVideo}
+            onLoad={loadGrowthVideos}
           />
         )}
 
@@ -986,6 +1054,311 @@ const EndorsementsManager = ({ endorsements, editingEndorsement, onSelectEndorse
                     </button>
                     <button
                       onClick={() => onDelete(endorsement.id)}
+                      className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CATEGORY_OPTIONS = [
+  { value: 'df-dscore', label: 'DF & D-Score' },
+  { value: 'pledge', label: 'Marketplace Pledge' },
+  { value: 'general', label: 'Teaching / General' },
+];
+
+const emptyGrowthVideoForm = () => ({
+  url: '',
+  title: '',
+  category: 'general',
+  categoryLabel: 'Teaching',
+  sortOrder: 0,
+  published: true,
+});
+
+const GrowthVideosManager = ({ videos, editingVideo, onSelectVideo, onSave, onDelete, onLoad }) => {
+  const [formData, setFormData] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (editingVideo && editingVideo !== 'new') {
+      const video = videos.find((v) => v.id === editingVideo);
+      if (video) {
+        setFormData({ ...video });
+      }
+    } else if (editingVideo === 'new') {
+      setFormData(emptyGrowthVideoForm());
+    } else {
+      setFormData(null);
+    }
+  }, [editingVideo, videos]);
+
+  const handleCategoryChange = (category) => {
+    const option = CATEGORY_OPTIONS.find((o) => o.value === category);
+    setFormData((prev) => ({
+      ...prev,
+      category,
+      categoryLabel: option?.label || prev.categoryLabel,
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!formData || !editingVideo || editingVideo === 'new') return;
+    setSaving(true);
+    const result = await onSave(editingVideo, formData);
+    setSaving(false);
+    if (result.success) {
+      alert('Video saved successfully!');
+    } else {
+      alert(result.error || 'Failed to save');
+    }
+  };
+
+  const handleAddNew = () => {
+    setFormData(emptyGrowthVideoForm());
+    onSelectVideo('new');
+  };
+
+  const handleSaveNew = async () => {
+    if (!formData) return;
+    if (!formData.url?.trim()) {
+      alert('YouTube URL is required');
+      return;
+    }
+    if (!formData.title?.trim()) {
+      alert('Title is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await adminAuthenticatedFetch(API_ENDPOINTS.ADMIN_GROWTH_VIDEOS, {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        await onLoad();
+        setFormData(null);
+        onSelectVideo(null);
+        alert('Video added successfully!');
+      } else {
+        const data = await response.json().catch(() => ({}));
+        alert(data.error || 'Failed to add video');
+      }
+    } catch {
+      alert('Failed to add video');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editingVideo && formData) {
+    const previewYouTubeId =
+      formData.youtubeId || extractYouTubeId(formData.url);
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-navy">
+              {editingVideo === 'new' ? 'Add Growth Video' : 'Edit Growth Video'}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Shown on the Monitor Your Growth page
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={editingVideo === 'new' ? handleSaveNew : handleSave}
+              disabled={saving}
+              className="px-4 py-2 bg-navy text-white rounded-lg hover:bg-blue-900 transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => {
+                onSelectVideo(null);
+                setFormData(null);
+              }}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-2xl">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+            <input
+              type="url"
+              value={formData.url || ''}
+              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+            />
+            <p className="mt-1 text-xs text-gray-500">Paste a full YouTube link — the preview image is pulled from YouTube automatically.</p>
+          </div>
+          {previewYouTubeId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Video preview</label>
+              <div className="relative max-w-md aspect-video rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                <img
+                  src={getYouTubeThumbnail(previewYouTubeId)}
+                  alt="YouTube preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={formData.title || ''}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                value={formData.category || 'general'}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {formData.category === 'df-dscore' && (
+                <p className="mt-1 text-xs text-navy">
+                  This video is shown in the Measure (DF &amp; D-Score) section only.
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category label (badge)</label>
+              <input
+                type="text"
+                value={formData.categoryLabel || ''}
+                onChange={(e) => setFormData({ ...formData, categoryLabel: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sort order</label>
+            <input
+              type="number"
+              value={formData.sortOrder ?? 0}
+              onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+              className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy"
+            />
+            <p className="mt-1 text-xs text-gray-500">Lower numbers appear first on the page.</p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.published !== false}
+                onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
+                className="h-4 w-4 text-navy focus:ring-navy border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">
+                Published (visible on Monitor Your Growth)
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-6 border-b border-gray-200 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-navy">Growth Videos</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            YouTube links on{' '}
+            <a href="/monitor-your-growth" target="_blank" rel="noopener noreferrer" className="text-navy underline">
+              Monitor Your Growth
+            </a>
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={onLoad}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={handleAddNew}
+            className="px-4 py-2 bg-navy text-white rounded-lg hover:bg-blue-900 transition-colors text-sm"
+          >
+            + Add Video
+          </button>
+        </div>
+      </div>
+      <div className="p-6">
+        <div className="space-y-3">
+          {videos.length === 0 ? (
+            <p className="text-gray-500 text-sm">No growth videos yet. Add one to show on the page.</p>
+          ) : (
+            videos.map((video) => (
+              <div key={video.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start gap-4">
+                  <img
+                    src={getYouTubeThumbnail(video.youtubeId)}
+                    alt=""
+                    className="w-32 h-[72px] object-cover rounded bg-gray-100 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h4 className="font-semibold text-navy">{video.title}</h4>
+                      <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                        video.published !== false
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {video.published !== false ? 'Published' : 'Hidden'}
+                      </span>
+                      {video.category === 'df-dscore' && (
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded bg-gold/20 text-navy">
+                          Measure section
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{video.categoryLabel || video.category}</p>
+                    <a
+                      href={video.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-700 hover:underline break-all"
+                    >
+                      {video.url}
+                    </a>
+                  </div>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <button
+                      onClick={() => onSelectVideo(video.id)}
+                      className="px-3 py-1 bg-navy text-white rounded text-sm hover:bg-blue-900"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onDelete(video.id)}
                       className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
                       title="Delete"
                     >

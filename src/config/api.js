@@ -80,6 +80,10 @@ export const API_ENDPOINTS = {
   ADMIN_ENDORSEMENTS: `${API_BASE_URL}/admin/endorsements`,
   ADMIN_ENDORSEMENT: (id) => `${API_BASE_URL}/admin/endorsements/${id}`,
   ADMIN_ENDORSEMENT_APPROVE: (id) => `${API_BASE_URL}/admin/endorsements/${id}/approve`,
+  // Growth videos (Monitor Your Growth)
+  GROWTH_VIDEOS: `${API_BASE_URL}/growth-videos`,
+  ADMIN_GROWTH_VIDEOS: `${API_BASE_URL}/admin/growth-videos`,
+  ADMIN_GROWTH_VIDEO: (id) => `${API_BASE_URL}/admin/growth-videos/${id}`,
   // Site settings
   SITE_SETTINGS: `${API_BASE_URL}/site-settings`,
   ADMIN_SITE_SETTINGS: `${API_BASE_URL}/admin/site-settings`,

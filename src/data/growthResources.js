@@ -11,8 +11,8 @@ export const growthVideos = [
     category: 'df-dscore',
     categoryLabel: 'DF & D-Score',
     url: 'https://www.youtube.com/watch?v=zVNiia5_CXQ',
-    thumbnail: '/images/twin-crown-jewels-thumb.svg',
-    thumbnailFallback: '/images/twin-crown-jewels-thumb.svg',
+    thumbnail: 'https://i.ytimg.com/vi/zVNiia5_CXQ/hqdefault.jpg',
+    thumbnailFallback: 'https://i.ytimg.com/vi/zVNiia5_CXQ/mqdefault.jpg',
   },
   {
     id: '1YzaXaytMRE',

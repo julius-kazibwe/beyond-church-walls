@@ -1,0 +1,30 @@
+[
+  {
+    "id": "1",
+    "youtubeId": "zVNiia5_CXQ",
+    "title": "The Twin Crown Jewels",
+    "category": "df-dscore",
+    "categoryLabel": "DF & D-Score",
+    "url": "https://www.youtube.com/watch?v=zVNiia5_CXQ",
+    "thumbnail": "https://i.ytimg.com/vi/zVNiia5_CXQ/hqdefault.jpg",
+    "thumbnailFallback": "https://i.ytimg.com/vi/zVNiia5_CXQ/mqdefault.jpg",
+    "featured": true,
+    "sortOrder": 0,
+    "published": true,
+    "createdAt": "2025-11-21T21:23:50.190Z"
+  },
+  {
+    "id": "2",
+    "youtubeId": "1YzaXaytMRE",
+    "title": "The Marketplace Pledge",
+    "category": "pledge",
+    "categoryLabel": "Marketplace Pledge",
+    "url": "https://www.youtube.com/watch?v=1YzaXaytMRE",
+    "thumbnail": "https://i.ytimg.com/vi/1YzaXaytMRE/hqdefault.jpg",
+    "thumbnailFallback": "",
+    "featured": false,
+    "sortOrder": 1,
+    "published": true,
+    "createdAt": "2025-11-21T21:23:50.190Z"
+  }
+]

@@ -13,6 +13,7 @@ const { getAdmin, verifyAdminPassword, updateAdminLastLogin } = require('./utils
 const { getAllWeeklyContent, getWeekContent, saveWeeklyContent, deleteWeek } = require('./utils/weeklyContentStorageMongo');
 const { getAllFeedback, getApprovedFeedback, addFeedback, updateFeedbackApproval, deleteFeedback } = require('./utils/feedbackStorageMongo');
 const { getAllEndorsements, getApprovedEndorsements, addEndorsement, updateEndorsementApproval, updateEndorsement, deleteEndorsement } = require('./utils/endorsementStorageMongo');
+const { getAllGrowthVideos, getPublishedGrowthVideos, addGrowthVideo, updateGrowthVideo, deleteGrowthVideo } = require('./utils/growthVideoStorageMongo');
 const { getSiteSettings, updateSiteSettings } = require('./utils/siteSettingsStorageMongo');
 const { saveSubmission, getSubmissions } = require('./utils/submissionStorageMongo');
 require('dotenv').config();
@@ -1235,6 +1236,109 @@ app.delete('/api/admin/endorsements/:id', authenticateAdmin, async (req, res) =>
   } catch (error) {
     console.error('Error deleting endorsement:', error);
     res.status(500).json({ error: 'Failed to delete endorsement' });
+  }
+});
+
+// Growth videos (public - published only, for Monitor Your Growth)
+app.get('/api/growth-videos', async (req, res) => {
+  try {
+    const videos = await getPublishedGrowthVideos();
+    res.json({
+      success: true,
+      videos
+    });
+  } catch (error) {
+    console.error('Error fetching growth videos:', error);
+    res.status(500).json({ error: 'Failed to fetch growth videos' });
+  }
+});
+
+// Admin growth video management
+app.get('/api/admin/growth-videos', authenticateAdmin, async (req, res) => {
+  try {
+    const videos = await getAllGrowthVideos();
+    res.json({
+      success: true,
+      count: videos.length,
+      videos
+    });
+  } catch (error) {
+    console.error('Error fetching growth videos:', error);
+    res.status(500).json({ error: 'Failed to fetch growth videos' });
+  }
+});
+
+app.post('/api/admin/growth-videos', authenticateAdmin, async (req, res) => {
+  try {
+    const { url, youtubeId, title, category, categoryLabel, thumbnail, thumbnailFallback, featured, sortOrder, published } = req.body;
+
+    if (!url && !youtubeId) {
+      return res.status(400).json({ error: 'YouTube URL or video ID is required' });
+    }
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const video = await addGrowthVideo({
+      url,
+      youtubeId,
+      title: sanitizeHtml(title),
+      category,
+      categoryLabel: categoryLabel ? sanitizeHtml(categoryLabel) : undefined,
+      thumbnail,
+      thumbnailFallback,
+      featured,
+      sortOrder,
+      published
+    });
+
+    res.json({
+      success: true,
+      message: 'Growth video added successfully',
+      video
+    });
+  } catch (error) {
+    console.error('Error adding growth video:', error);
+    res.status(400).json({ error: error.message || 'Failed to add growth video' });
+  }
+});
+
+app.put('/api/admin/growth-videos/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = { ...req.body };
+    if (updates.title) updates.title = sanitizeHtml(updates.title);
+    if (updates.categoryLabel) updates.categoryLabel = sanitizeHtml(updates.categoryLabel);
+
+    const video = await updateGrowthVideo(id, updates);
+    if (video) {
+      res.json({
+        success: true,
+        message: 'Growth video updated successfully',
+        video
+      });
+    } else {
+      res.status(404).json({ error: 'Growth video not found' });
+    }
+  } catch (error) {
+    console.error('Error updating growth video:', error);
+    const status = error.message && error.message.includes('not found') ? 404 : 400;
+    res.status(status).json({ error: error.message || 'Failed to update growth video' });
+  }
+});
+
+app.delete('/api/admin/growth-videos/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await deleteGrowthVideo(id);
+    res.json({
+      success: true,
+      message: 'Growth video deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting growth video:', error);
+    const status = error.message && error.message.includes('not found') ? 404 : 500;
+    res.status(status).json({ error: error.message || 'Failed to delete growth video' });
   }
 });
 

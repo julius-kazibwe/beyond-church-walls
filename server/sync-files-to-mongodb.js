@@ -21,6 +21,7 @@ const Admin = require('./models/Admin');
 const Submission = require('./models/Submission');
 const Feedback = require('./models/Feedback');
 const Endorsement = require('./models/Endorsement');
+const GrowthVideo = require('./models/GrowthVideo');
 const WeeklyContent = require('./models/WeeklyContent');
 const SiteSettings = require('./models/SiteSettings');
 
@@ -29,6 +30,7 @@ const userStorage = require('./utils/userStorage');
 const adminStorage = require('./utils/adminStorage');
 const feedbackStorage = require('./utils/feedbackStorage');
 const endorsementStorage = require('./utils/endorsementStorage');
+const growthVideoStorage = require('./utils/growthVideoStorage');
 const weeklyContentStorage = require('./utils/weeklyContentStorage');
 const siteSettingsStorage = require('./utils/siteSettingsStorage');
 
@@ -257,6 +259,48 @@ async function syncEndorsements() {
   }
 }
 
+async function syncGrowthVideos() {
+  console.log('📦 Syncing growth videos...');
+  try {
+    const videos = await growthVideoStorage.getAllGrowthVideos();
+    let synced = 0;
+    let skipped = 0;
+
+    for (const item of videos) {
+      try {
+        const existing = await GrowthVideo.findOne({ youtubeId: item.youtubeId });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        await GrowthVideo.create({
+          youtubeId: item.youtubeId,
+          title: item.title,
+          category: item.category || 'general',
+          categoryLabel: item.categoryLabel || '',
+          url: item.url,
+          thumbnail: item.thumbnail || '',
+          thumbnailFallback: item.thumbnailFallback || '',
+          featured: item.featured === true,
+          sortOrder: item.sortOrder || 0,
+          published: item.published !== false,
+          createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+          updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date(),
+        });
+        synced++;
+      } catch (error) {
+        console.error(`  ❌ Error syncing growth video:`, error.message);
+      }
+    }
+    console.log(`  ✅ Synced ${synced} growth videos, skipped ${skipped} existing`);
+    return { synced, skipped };
+  } catch (error) {
+    console.error('  ❌ Error syncing growth videos:', error.message);
+    return { synced: 0, skipped: 0 };
+  }
+}
+
 async function syncWeeklyContent() {
   console.log('📦 Syncing weekly content...');
   try {
@@ -350,6 +394,7 @@ async function main() {
     submissions: await syncSubmissions(),
     feedback: await syncFeedback(),
     endorsements: await syncEndorsements(),
+    growthVideos: await syncGrowthVideos(),
     weeklyContent: await syncWeeklyContent(),
     siteSettings: await syncSiteSettings(),
   };
